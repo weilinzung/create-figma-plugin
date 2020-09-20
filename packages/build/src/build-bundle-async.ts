@@ -74,7 +74,9 @@ async function createMainEntryFileAsync(
   const fileContent = `
     require('@create-figma-plugin/utilities/lib/events');
     const modules = ${createRequireCode(modules)};
-    const commandId = '${modules[0].commandId}';
+    const commandId = (figma.command === '' || ${modules.length === 1}) ? '${
+    modules[0].commandId
+  }' : figma.command;
     modules[commandId]();
   `
   return tempWrite(fileContent)
@@ -96,15 +98,15 @@ async function createUiEntryFileAsync(
     require('@create-figma-plugin/utilities/lib/events');
     const rootNode = document.getElementById('create-figma-plugin');
     const modules = ${createRequireCode(modules)};
-    const commandId = __COMMAND__ === null ? '${
+    const commandId = __FIGMA_COMMAND__ === '' ? '${
       modules[0].commandId
-    }' : __COMMAND__;
+    }' : __FIGMA_COMMAND__;
     if (typeof modules[commandId] === 'undefined') {
       throw new Error(
         'UI not defined for the command corresponding to ' + commandId
       );
     }
-    modules[commandId](rootNode, __DATA__);
+    modules[commandId](rootNode, __SHOW_UI_DATA__);
   `
   return tempWrite(fileContent)
 }
