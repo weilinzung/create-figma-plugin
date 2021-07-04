@@ -1,72 +1,99 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
 import { SelectableItem } from './selectable-item'
 
-export default { title: 'Selectable Item' }
+export default { title: 'Components/Selectable Item' }
 
-const longText = Array(100).fill('Text').join(' ')
-
-export const Default = function () {
-  const [state, setState] = useState({ foo: false })
+export const Unselected = function () {
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <SelectableItem name="foo" onChange={setState} value={state.foo}>
+    <SelectableItem onChange={handleChange} value={value}>
       Text
     </SelectableItem>
   )
 }
 
 export const Selected = function () {
-  const [state, setState] = useState({ foo: true })
+  const [value, setValue] = useState(true)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <SelectableItem name="foo" onChange={setState} value={state.foo}>
+    <SelectableItem onChange={handleChange} value={value}>
       Text
     </SelectableItem>
   )
 }
 
 export const Disabled = function () {
-  const [state, setState] = useState({ foo: false })
+  function handleChange() {
+    throw new Error('This function should not be called')
+  }
   return (
-    <SelectableItem disabled name="foo" onChange={setState} value={state.foo}>
-      Text
-    </SelectableItem>
-  )
-}
-
-export const DisabledSelected = function () {
-  const [state, setState] = useState({ foo: true })
-  return (
-    <SelectableItem disabled name="foo" onChange={setState} value={state.foo}>
+    <SelectableItem disabled onChange={handleChange} value={true}>
       Text
     </SelectableItem>
   )
 }
 
 export const Bold = function () {
-  const [state, setState] = useState({ foo: false })
+  const [value, setValue] = useState(true)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <SelectableItem bold name="foo" onChange={setState} value={state.foo}>
+    <SelectableItem bold onChange={handleChange} value={value}>
       Text
     </SelectableItem>
   )
 }
 
 export const Indent = function () {
-  const [state, setState] = useState({ foo: false })
+  const [value, setValue] = useState(true)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <SelectableItem indent name="foo" onChange={setState} value={state.foo}>
+    <SelectableItem indent onChange={handleChange} value={value}>
       Text
     </SelectableItem>
   )
 }
 
 export const LongText = function () {
-  const [state, setState] = useState({ foo: true })
+  const longText = Array(100).fill('Text').join(' ')
+  const [value, setValue] = useState(true)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <SelectableItem name="foo" onChange={setState} value={state.foo}>
+    <SelectableItem onChange={handleChange} value={value}>
       {longText}
+    </SelectableItem>
+  )
+}
+
+export const OnValueChange = function () {
+  const [value, setValue] = useState(false)
+  return (
+    <SelectableItem onValueChange={setValue} value={value}>
+      Text
     </SelectableItem>
   )
 }

@@ -1,142 +1,115 @@
 /** @jsx h */
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
 import { useCallback } from 'preact/hooks'
 
-import { HTMLProps, OnChange } from '../../types'
-import {
-  DOWN_KEY_CODE,
-  ESCAPE_KEY_CODE,
-  LEFT_KEY_CODE,
-  RIGHT_KEY_CODE,
-  UP_KEY_CODE
-} from '../../utilities/key-codes'
-import styles from './segmented-control.scss'
+import { OnValueChange, Props } from '../../types/types'
+import { createClassName } from '../../utilities/create-class-name'
+import styles from './segmented-control.css'
 
-export interface SegmentedControlProps<T> {
+const ITEM_ID_DATA_ATTRIBUTE_NAME = 'data-segmented-control-item-id'
+
+export type SegmentedControlProps<
+  Name extends string,
+  Value extends boolean | number | string
+> = {
   disabled?: boolean
-  focused?: boolean
-  name: string
-  onChange: OnChange
-  options: Array<SegmentedControlOption<T>>
+  name?: Name
+  onChange?: OmitThisParameter<JSX.GenericEventHandler<HTMLInputElement>>
+  onValueChange?: OnValueChange<Value, Name>
+  options: Array<SegmentedControlOption<Value>>
   propagateEscapeKeyDown?: boolean
-  value: null | T
+  value: Value
 }
-
-interface SegmentedControlOption<T> {
+export type SegmentedControlOption<
+  Value extends boolean | number | string = string
+> = {
   disabled?: boolean
-  text?: preact.ComponentChildren
-  value: null | T
+  children?: ComponentChildren
+  value: Value
 }
 
-export function SegmentedControl<T extends string | number | boolean = string>({
-  disabled: disabled,
-  focused: isFocused,
+export function SegmentedControl<
+  Name extends string,
+  Value extends boolean | number | string
+>({
+  disabled = false,
   name,
-  onChange,
+  onChange = function () {},
+  onValueChange = function () {},
   options,
   propagateEscapeKeyDown = true,
   value,
   ...rest
-}: HTMLProps<SegmentedControlProps<T>, HTMLInputElement>): h.JSX.Element {
+}: Props<HTMLInputElement, SegmentedControlProps<Name, Value>>): JSX.Element {
   const handleChange = useCallback(
-    function (event: Event) {
-      const index = (event.target as HTMLElement).getAttribute('data-index')
-      if (index === null) {
-        return
-      }
-      const newValue = options[parseInt(index)].value
-      onChange({ [name]: newValue }, newValue, name, event)
+    function (event: JSX.TargetedEvent<HTMLInputElement>): void {
+      const id = event.currentTarget.getAttribute(
+        ITEM_ID_DATA_ATTRIBUTE_NAME
+      ) as string
+      const newValue = options[parseInt(id, 10)].value
+      onValueChange(newValue, name)
+      onChange(event)
     },
-    [name, onChange, options]
+    [name, onChange, onValueChange, options]
   )
 
   const handleKeyDown = useCallback(
-    function (event: KeyboardEvent) {
-      const keyCode = event.keyCode
-      if (keyCode === ESCAPE_KEY_CODE) {
-        if (propagateEscapeKeyDown === false) {
-          event.stopPropagation()
-        }
-        ;(event.target as HTMLElement).blur()
+    function (event: JSX.TargetedKeyboardEvent<HTMLInputElement>): void {
+      if (event.key !== 'Escape') {
         return
       }
-      if (
-        keyCode === DOWN_KEY_CODE ||
-        keyCode === LEFT_KEY_CODE ||
-        keyCode === RIGHT_KEY_CODE ||
-        keyCode === UP_KEY_CODE
-      ) {
-        if (value === null) {
-          const newValue = options[0].value
-          onChange({ [name]: newValue }, newValue, name, event)
-          return
-        }
-        const currentIndex = options.findIndex(function (option) {
-          return option.value === value
-        })
-        const nextIndex = resolveNextIndex(
-          options,
-          currentIndex,
-          keyCode === LEFT_KEY_CODE || keyCode === UP_KEY_CODE ? -1 : 1
-        )
-        if (nextIndex !== -1) {
-          const newValue = options[nextIndex].value
-          onChange({ [name]: newValue }, newValue, name, event)
-        }
+      if (propagateEscapeKeyDown === false) {
+        event.stopPropagation()
       }
+      event.currentTarget.blur()
     },
-    [name, onChange, options, propagateEscapeKeyDown, value]
+    [propagateEscapeKeyDown]
   )
 
   return (
     <div
-      class={styles.segmentedControl}
-      data-initial-focus={isFocused === true}
-      onKeyDown={disabled === true ? undefined : handleKeyDown}
-      tabIndex={disabled === true ? undefined : 0}
+      class={createClassName([
+        styles.segmentedControl,
+        disabled === true ? styles.disabled : null
+      ])}
     >
-      {options.map(function (option, index) {
-        const text =
-          typeof option.text === 'undefined' ? option.value : option.text
-        return (
-          <label key={index} class={styles.label}>
-            <input
-              {...rest}
-              checked={value === option.value}
-              class={styles.input}
-              data-index={index}
-              disabled={disabled === true || option.disabled === true}
-              name={name}
-              onChange={handleChange}
-              tabIndex={-1}
-              type="radio"
-              value={option.value === null ? undefined : `${option.value}`}
-            />
-            <div class={styles.text}>{text}</div>
-          </label>
-        )
-      })}
+      <div class={styles.labels}>
+        {options.map(function (
+          option: SegmentedControlOption<Value>,
+          index: number
+        ): JSX.Element {
+          const children =
+            typeof option.children === 'undefined'
+              ? `${option.value}`
+              : option.children
+          const isOptionDisabled = disabled === true || option.disabled === true
+          return (
+            <label key={index} class={styles.label}>
+              <input
+                {...rest}
+                checked={value === option.value}
+                class={styles.input}
+                disabled={isOptionDisabled === true}
+                name={name}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                tabIndex={isOptionDisabled === true ? -1 : 0}
+                type="radio"
+                value={`${option.value}`}
+                {...{ [ITEM_ID_DATA_ATTRIBUTE_NAME]: `${index}` }}
+              />
+              <div class={styles.children}>
+                <div
+                  class={typeof children === 'string' ? styles.text : undefined}
+                >
+                  {children}
+                </div>
+              </div>
+            </label>
+          )
+        })}
+      </div>
+      <div class={styles.border} />
     </div>
   )
-}
-
-function resolveNextIndex<T>(
-  options: Array<SegmentedControlOption<T>>,
-  currentIndex: number,
-  delta: number
-): number {
-  let nextIndex = currentIndex
-  do {
-    nextIndex += delta
-    if (nextIndex === -1) {
-      nextIndex = options.length - 1
-    }
-    if (nextIndex === options.length) {
-      nextIndex = 0
-    }
-    if (options[nextIndex].disabled !== true) {
-      return nextIndex
-    }
-  } while (nextIndex !== currentIndex)
-  return -1
 }

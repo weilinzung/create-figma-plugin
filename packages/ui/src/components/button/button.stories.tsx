@@ -1,19 +1,34 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 
+import { useInitialFocus } from '../../hooks/use-initial-focus/use-initial-focus'
 import { Button } from './button'
 
-export default { title: 'Button' }
+export default { title: 'Components/Button' }
 
-const longText = Array(100).fill('Text').join(' ')
-
-function handleClick() {}
-
-export const Primary = function () {
+export const Default = function () {
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
   return <Button onClick={handleClick}>Text</Button>
 }
 
-export const PrimaryLoading = function () {
+export const Focused = function () {
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
+  return (
+    <Button {...useInitialFocus()} onClick={handleClick}>
+      Text
+    </Button>
+  )
+}
+
+export const Loading = function () {
+  function handleClick() {
+    throw new Error('This function should not be called')
+  }
   return (
     <Button loading onClick={handleClick}>
       Text
@@ -21,7 +36,10 @@ export const PrimaryLoading = function () {
   )
 }
 
-export const PrimaryDisabled = function () {
+export const Disabled = function () {
+  function handleClick() {
+    throw new Error('This function should not be called')
+  }
   return (
     <Button disabled onClick={handleClick}>
       Text
@@ -29,15 +47,10 @@ export const PrimaryDisabled = function () {
   )
 }
 
-export const PrimaryDisabledLoading = function () {
-  return (
-    <Button disabled loading onClick={handleClick}>
-      Text
-    </Button>
-  )
-}
-
-export const PrimaryFullWidth = function () {
+export const FullWidth = function () {
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
   return (
     <Button fullWidth onClick={handleClick}>
       Text
@@ -45,7 +58,11 @@ export const PrimaryFullWidth = function () {
   )
 }
 
-export const PrimaryFullWidthLongText = function () {
+export const FullWidthLongText = function () {
+  const longText = Array(100).fill('Text').join(' ')
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
   return (
     <Button fullWidth onClick={handleClick}>
       {longText}
@@ -54,6 +71,9 @@ export const PrimaryFullWidthLongText = function () {
 }
 
 export const Secondary = function () {
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
   return (
     <Button onClick={handleClick} secondary>
       Text
@@ -61,47 +81,10 @@ export const Secondary = function () {
   )
 }
 
-export const SecondaryLoading = function () {
-  return (
-    <Button loading onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const SecondaryDisabled = function () {
-  return (
-    <Button disabled onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const SecondaryDisabledLoading = function () {
-  return (
-    <Button disabled loading onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const SecondaryFullWidth = function () {
-  return (
-    <Button fullWidth onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const SecondaryFullWidthLongText = function () {
-  return (
-    <Button fullWidth onClick={handleClick} secondary>
-      {longText}
-    </Button>
-  )
-}
-
 export const Destructive = function () {
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
   return (
     <Button destructive onClick={handleClick}>
       Text
@@ -109,90 +92,13 @@ export const Destructive = function () {
   )
 }
 
-export const DestructiveLoading = function () {
-  return (
-    <Button destructive loading onClick={handleClick}>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveDisabled = function () {
-  return (
-    <Button destructive disabled onClick={handleClick}>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveDisabledLoading = function () {
-  return (
-    <Button destructive disabled loading onClick={handleClick}>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveFullWidth = function () {
-  return (
-    <Button destructive fullWidth onClick={handleClick}>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveFullWidthLongText = function () {
-  return (
-    <Button destructive fullWidth onClick={handleClick}>
-      {longText}
-    </Button>
-  )
-}
-
 export const DestructiveSecondary = function () {
+  function handleClick(event: JSX.TargetedMouseEvent<HTMLButtonElement>) {
+    console.log(event)
+  }
   return (
     <Button destructive onClick={handleClick} secondary>
       Text
-    </Button>
-  )
-}
-
-export const DestructiveSecondaryLoading = function () {
-  return (
-    <Button destructive loading onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveSecondaryDisabled = function () {
-  return (
-    <Button destructive disabled onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveSecondaryDisabledLoading = function () {
-  return (
-    <Button destructive disabled loading onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveSecondaryFullWidth = function () {
-  return (
-    <Button destructive fullWidth onClick={handleClick} secondary>
-      Text
-    </Button>
-  )
-}
-
-export const DestructiveSecondaryFullWidthLongText = function () {
-  return (
-    <Button destructive fullWidth onClick={handleClick} secondary>
-      {longText}
     </Button>
   )
 }

@@ -1,6 +1,6 @@
-# Specifying multiple commands in the plugin sub-menu
+## Specifying multiple commands in the plugin sub-menu
 
-Commands can be specified on the [**`"menu"`**](/docs/configuration.md#menu) key under **`"figma-plugin"`**:
+Commands are specified on the [**`"menu"`**](#menu) key under **`"figma-plugin"`**:
 
 ```diff
   {
@@ -32,3 +32,5 @@ See that:
 The above configuration would result in the following:
 
 ![“Flatten Selection to Bitmap” plugin sub-menu](/media/multiple-commands.png)
+
+See the other [configuration options](#configuration-options).

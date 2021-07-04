@@ -1,65 +1,75 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
+import { IconLayerComponent16 } from '../icon/icon-16/icon-layer-component-16'
+import { IconLayerFrame16 } from '../icon/icon-16/icon-layer-frame-16'
 import { Layer } from './layer'
 
-export default { title: 'Layer' }
-
-const longText = Array(100).fill('Text').join(' ')
+export default { title: 'Components/Layer' }
 
 export const Frame = function () {
-  const [selected, setSelected] = useState(false)
-  function handleClick() {
-    setSelected(!(selected === true))
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
   }
   return (
-    <Layer onClick={handleClick} selected={selected} type="frame">
+    <Layer icon={<IconLayerFrame16 />} onChange={handleChange} value={value}>
       Text
     </Layer>
   )
 }
 
-export const FrameSelected = function () {
-  const [selected, setSelected] = useState(true)
-  function handleClick() {
-    setSelected(!(selected === true))
+export const Selected = function () {
+  const [value, setValue] = useState(true)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
   }
   return (
-    <Layer onClick={handleClick} selected={selected} type="frame">
+    <Layer icon={<IconLayerFrame16 />} onChange={handleChange} value={value}>
       Text
     </Layer>
   )
 }
 
-export const FrameWithPageName = function () {
-  const [selected, setSelected] = useState(false)
-  function handleClick() {
-    setSelected(!(selected === true))
+export const PageName = function () {
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
   }
   return (
     <Layer
-      onClick={handleClick}
+      icon={<IconLayerFrame16 />}
+      onChange={handleChange}
       pageName="Page Name"
-      selected={selected}
-      type="frame"
+      value={value}
     >
       Text
     </Layer>
   )
 }
 
-export const FrameLongText = function () {
-  const [selected, setSelected] = useState(false)
-  function handleClick() {
-    setSelected(!(selected === true))
+export const LongText = function () {
+  const longText = Array(100).fill('Text').join(' ')
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
   }
   return (
     <Layer
-      onClick={handleClick}
+      icon={<IconLayerFrame16 />}
+      onChange={handleChange}
       pageName="Page Name"
-      selected={selected}
-      type="frame"
+      value={value}
     >
       {longText}
     </Layer>
@@ -67,59 +77,21 @@ export const FrameLongText = function () {
 }
 
 export const Component = function () {
-  const [selected, setSelected] = useState(false)
-  function handleClick() {
-    setSelected(!(selected === true))
-  }
-  return (
-    <Layer onClick={handleClick} selected={selected} type="component">
-      Text
-    </Layer>
-  )
-}
-
-export const ComponentSelected = function () {
-  const [selected, setSelected] = useState(true)
-  function handleClick() {
-    setSelected(!(selected === true))
-  }
-  return (
-    <Layer onClick={handleClick} selected={selected} type="component">
-      Text
-    </Layer>
-  )
-}
-
-export const ComponentWithPageName = function () {
-  const [selected, setSelected] = useState(false)
-  function handleClick() {
-    setSelected(!(selected === true))
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
   }
   return (
     <Layer
-      onClick={handleClick}
-      pageName="Page Name"
-      selected={selected}
-      type="component"
+      bold
+      color="purple"
+      icon={<IconLayerComponent16 />}
+      onChange={handleChange}
+      value={value}
     >
       Text
-    </Layer>
-  )
-}
-
-export const ComponentLongText = function () {
-  const [selected, setSelected] = useState(false)
-  function handleClick() {
-    setSelected(!(selected === true))
-  }
-  return (
-    <Layer
-      onClick={handleClick}
-      pageName="Page Name"
-      selected={selected}
-      type="component"
-    >
-      {longText}
     </Layer>
   )
 }

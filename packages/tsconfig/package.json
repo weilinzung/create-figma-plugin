@@ -1,6 +1,6 @@
 {
   "name": "@create-figma-plugin/tsconfig",
-  "version": "0.0.80",
+  "version": "1.2.1",
   "publishConfig": {
     "access": "public"
   },
@@ -21,8 +21,12 @@
   "files": [
     "tsconfig.json"
   ],
-  "main": "tsconfig.json",
+  "main": "./tsconfig.json",
   "scripts": {
     "fix": "prettier --loglevel error --write '*.json'"
-  }
+  },
+  "devDependencies": {
+    "prettier": "^2.3.1"
+  },
+  "prettier": "eslint-config-yuanqing/prettier"
 }

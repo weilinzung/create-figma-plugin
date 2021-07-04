@@ -1,14 +1,11 @@
 .DS_Store
 *.log
-*.scss.d.ts
+*.css.d.ts
 *.tsbuildinfo
-.nyc_output/
-coverage/
 lib/
 node_modules/
+sandbox/
+/build/
 /packages/**/fixtures/**/build/
 /packages/**/fixtures/**/figma-plugin/
-/packages/**/fixtures/**/manifest.json
-/packages/create-figma-plugin/docs
-/packages/create-figma-plugin/README.md
 /packages/ui/build/

@@ -1,86 +1,81 @@
 /** @jsx h */
-import classnames from '@sindresorhus/class-names'
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
 import { useCallback } from 'preact/hooks'
 
-import { HTMLProps, OnChange } from '../../types'
-import { ENTER_KEY_CODE, ESCAPE_KEY_CODE } from '../../utilities/key-codes'
-import styles from './checkbox.scss'
+import { OnValueChange, Props } from '../../types/types'
+import { createClassName } from '../../utilities/create-class-name'
+import { IconControlCheckboxChecked12 } from '../icon/icon-12/icon-control-checkbox-checked-12'
+import styles from './checkbox.css'
 
-export interface CheckboxProps {
-  children: preact.ComponentChildren
+export type CheckboxProps<Name extends string> = {
+  children: ComponentChildren
   disabled?: boolean
-  focused?: boolean
-  name: string
-  onChange: OnChange
-  onKeyDown?: EventListener
+  name?: Name
+  onChange?: OmitThisParameter<JSX.GenericEventHandler<HTMLInputElement>>
+  onValueChange?: OnValueChange<boolean, Name>
   propagateEscapeKeyDown?: boolean
   value: boolean
 }
 
-export function Checkbox({
+export function Checkbox<Name extends string>({
   children,
-  disabled,
-  focused,
+  disabled = false,
   name,
-  onChange,
-  onKeyDown,
+  onChange = function () {},
+  onValueChange = function () {},
   propagateEscapeKeyDown = true,
-  value,
+  value = false,
   ...rest
-}: HTMLProps<CheckboxProps, HTMLInputElement>): h.JSX.Element {
+}: Props<HTMLInputElement, CheckboxProps<Name>>): JSX.Element {
   const handleChange = useCallback(
-    function (event: Event) {
-      const newValue = !(value === true)
-      onChange({ [name]: newValue }, newValue, name, event)
+    function (event: JSX.TargetedEvent<HTMLInputElement>): void {
+      const newValue = event.currentTarget.checked
+      onValueChange(newValue, name)
+      onChange(event)
     },
-    [name, onChange, value]
+    [name, onChange, onValueChange]
   )
 
   const handleKeyDown = useCallback(
-    function (event: KeyboardEvent) {
-      switch (event.keyCode) {
-        case ESCAPE_KEY_CODE: {
-          if (propagateEscapeKeyDown === false) {
-            event.stopPropagation()
-          }
-          ;(event.target as HTMLElement).blur()
-          break
-        }
-        case ENTER_KEY_CODE: {
-          event.stopPropagation()
-          const newValue = !(value === true)
-          onChange({ [name]: newValue }, newValue, name, event)
-          break
-        }
+    function (event: JSX.TargetedKeyboardEvent<HTMLInputElement>): void {
+      if (event.key !== 'Escape') {
+        return
       }
-      if (typeof onKeyDown === 'function') {
-        onKeyDown(event)
+      if (propagateEscapeKeyDown === false) {
+        event.stopPropagation()
       }
+      event.currentTarget.blur()
     },
-    [name, onChange, onKeyDown, propagateEscapeKeyDown, value]
+    [propagateEscapeKeyDown]
   )
 
   return (
     <label
-      class={classnames(
-        styles.label,
+      class={createClassName([
+        styles.checkbox,
         disabled === true ? styles.disabled : null
-      )}
+      ])}
     >
       <input
         {...rest}
         checked={value === true}
         class={styles.input}
-        data-initial-focus={focused === true}
         disabled={disabled === true}
         name={name}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        tabIndex={disabled === true ? undefined : 0}
+        tabIndex={disabled === true ? -1 : 0}
         type="checkbox"
       />
-      <div class={styles.text}>{children}</div>
+      <div class={styles.fill}>
+        {value === true ? (
+          <div class={styles.checkIcon}>
+            <IconControlCheckboxChecked12 />
+          </div>
+        ) : null}
+      </div>
+      <div class={styles.border} />
+      <div class={styles.children}>{children}</div>
     </label>
   )
 }

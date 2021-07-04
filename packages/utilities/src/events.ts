@@ -1,91 +1,101 @@
-const isCommand = typeof window === 'undefined'
+export type EventHandler = {
+  name: string
+  handler: (...args: any) => void
+}
 
-const eventHandlers: {
-  [id: string]: {
-    eventName: string
-    eventHandler: (...args: Array<any>) => void
-  }
-} = {}
+const eventHandlers: Record<string, EventHandler> = {}
 
 let currentId = 0
 
 /**
- * Registers an `eventHandler` for the given `eventName`.
+ * Registers an event `handler` for the given event `name`.
  *
- * @returns A function for deregistering the `eventHandler`
+ * @returns Returns a function for deregistering the `handler`.
+ * @category Events
  */
-export function on(
-  eventName: string,
-  eventHandler: (...args: Array<any>) => void
+export function on<Handler extends EventHandler>(
+  name: Handler['name'],
+  handler: Handler['handler']
 ): () => void {
-  const id = `${currentId++}`
-  eventHandlers[id] = { eventHandler, eventName }
-  return function () {
+  const id = `${currentId}`
+  currentId += 1
+  eventHandlers[id] = { handler, name }
+  return function (): void {
     delete eventHandlers[id]
   }
 }
 
 /**
- * Registers an `eventHandler` that will run at most once for the given
- * `eventName`.
+ * Registers an event `handler` that will run at most once for the given
+ * event `name`.
  *
- * @returns A function for deregistering the `eventHandler`
+ * @returns Returns a function for deregistering the `handler`.
+ * @category Events
  */
-export function once(
-  eventName: string,
-  eventHandler: (...args: Array<any>) => void
+export function once<Handler extends EventHandler>(
+  name: Handler['name'],
+  handler: Handler['handler']
 ): () => void {
   let done = false
-  return on(eventName, function (...args) {
+  return on(name, function (...args): void {
     if (done === true) {
       return
     }
     done = true
-    eventHandler(...args)
+    handler(...args)
   })
 }
 
 /**
  * Calling `emit` in the main context invokes the event handler for the
- * matching `eventName` in your UI. Correspondingly, calling `emit` in your
- * UI invokes the event handler for the matching `eventName` in the main
+ * matching event `name` in your UI. Correspondingly, calling `emit` in your
+ * UI invokes the event handler for the matching event `name` in the main
  * context.
  *
- * All `arguments` passed after `eventName` will be directly applied on the
- * event handler.
+ * All `args` passed after `name` will be directly
+ * [applied](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply)
+ * on the event handler.
+ *
+ * @category Events
  */
-export const emit: (eventName: string, ...args: Array<any>) => void =
-  isCommand === true
-    ? function (...args) {
-        figma.ui.postMessage(args)
+export const emit =
+  typeof window === 'undefined'
+    ? function <Handler extends EventHandler>(
+        name: Handler['name'],
+        ...args: Parameters<Handler['handler']>
+      ): void {
+        figma.ui.postMessage([name, ...args])
       }
-    : function (...args) {
+    : function <Handler extends EventHandler>(
+        name: Handler['name'],
+        ...args: Parameters<Handler['handler']>
+      ): void {
         window.parent.postMessage(
           {
-            pluginMessage: args
+            pluginMessage: [name, ...args]
           },
           '*'
         )
       }
 
-function invokeEventHandler(eventName: string, args: Array<any>) {
+function invokeEventHandler(name: string, args: Array<unknown>): void {
   for (const id in eventHandlers) {
-    if (eventHandlers[id].eventName === eventName) {
-      eventHandlers[id].eventHandler.apply(null, args)
+    if (eventHandlers[id].name === name) {
+      eventHandlers[id].handler.apply(null, args)
     }
   }
 }
 
-if (isCommand === true) {
-  figma.ui.onmessage = function ([eventName, ...args]: [
+if (typeof window === 'undefined') {
+  figma.ui.onmessage = function ([name, ...args]: [
     string,
-    Array<any>
+    Array<unknown>
   ]): void {
-    invokeEventHandler(eventName, args)
+    invokeEventHandler(name, args)
   }
 } else {
   window.onmessage = function (event: MessageEvent): void {
-    const [eventName, ...args]: [string, Array<any>] = event.data.pluginMessage
-    invokeEventHandler(eventName, args)
+    const [name, ...args]: [string, Array<unknown>] = event.data.pluginMessage
+    invokeEventHandler(name, args)
   }
 }

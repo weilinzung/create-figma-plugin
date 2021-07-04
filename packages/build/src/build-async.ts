@@ -1,25 +1,44 @@
-import { log, readConfigAsync } from '@create-figma-plugin/common'
+import { log } from '@create-figma-plugin/common'
 
-import { buildBundleAsync } from './build-bundle-async'
-import { buildManifestAsync } from './build-manifest-async'
-import { buildScssModulesTypings } from './build-scss-modules-typings'
+import { BuildOptions } from './types/build.js'
+import { buildBundlesAsync } from './utilities/build-bundles-async/build-bundles-async.js'
+import { buildCssModulesTypingsAsync } from './utilities/build-css-modules-typings-async.js'
+import { buildManifestAsync } from './utilities/build-manifest-async.js'
+import { trackElapsedTime } from './utilities/track-elapsed-time.js'
+import { typeCheckAsync } from './utilities/type-check-async/type-check-async.js'
 
 export async function buildAsync(
-  isDevelopment: boolean,
-  exitOnError: boolean
+  options: BuildOptions & { clearPreviousLine: boolean }
 ): Promise<void> {
-  log.info('Building plugin...')
-  const config = await readConfigAsync()
+  const { minify, typecheck, clearPreviousLine } = options
   try {
-    await buildScssModulesTypings()
-    await buildBundleAsync(config, isDevelopment)
-    await buildManifestAsync(config)
-  } catch (error) {
-    log.error(error)
-    if (exitOnError === true) {
-      process.exit(1)
+    if (typecheck === true) {
+      const getTypeCheckElapsedTime = trackElapsedTime()
+      await buildCssModulesTypingsAsync() // This must occur before `typeCheckAsync`
+      log.info('Type checking...')
+      await typeCheckAsync(false)
+      const typeCheckElapsedTime = getTypeCheckElapsedTime()
+      log.success(`Type checked in ${typeCheckElapsedTime}`, {
+        clearPreviousLine
+      })
+      log.info('Building...')
+      const getBuildElapsedTime = trackElapsedTime()
+      await Promise.all([buildBundlesAsync(minify), buildManifestAsync(minify)])
+      const buildElapsedTime = getBuildElapsedTime()
+      log.success(`Built in ${buildElapsedTime}`, { clearPreviousLine })
+    } else {
+      log.info('Building...')
+      const getBuildElapsedTime = trackElapsedTime()
+      await Promise.all([
+        buildCssModulesTypingsAsync(),
+        buildBundlesAsync(minify),
+        buildManifestAsync(minify)
+      ])
+      const buildElapsedTime = getBuildElapsedTime()
+      log.success(`Built in ${buildElapsedTime}`, { clearPreviousLine })
     }
-    return
+  } catch (error) {
+    log.error(error.message)
+    process.exit(1)
   }
-  log.success('Done')
 }

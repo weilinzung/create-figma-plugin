@@ -1,43 +1,71 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
+import { useInitialFocus } from '../../hooks/use-initial-focus/use-initial-focus'
 import { Text } from '../text/text'
 import { Checkbox } from './checkbox'
 
-export default { title: 'Checkbox' }
+export default { title: 'Components/Checkbox' }
 
-export const Default = function () {
-  const [state, setState] = useState({ foo: false })
+export const Unselected = function () {
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <Checkbox name="foo" onChange={setState} value={state.foo}>
+    <Checkbox onChange={handleChange} value={value}>
       <Text>Text</Text>
     </Checkbox>
   )
 }
 
-export const Disabled = function () {
-  const [state, setState] = useState({ foo: false })
+export const Focused = function () {
+  const [value, setValue] = useState(false)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <Checkbox disabled name="foo" onChange={setState} value={state.foo}>
+    <Checkbox {...useInitialFocus()} onChange={handleChange} value={value}>
       <Text>Text</Text>
     </Checkbox>
   )
 }
 
 export const Selected = function () {
-  const [state, setState] = useState({ foo: true })
+  const [value, setValue] = useState(true)
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.checked
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <Checkbox name="foo" onChange={setState} value={state.foo}>
+    <Checkbox onChange={handleChange} value={value}>
       <Text>Text</Text>
     </Checkbox>
   )
 }
 
-export const DisabledSelected = function () {
-  const [state, setState] = useState({ foo: true })
+export const Disabled = function () {
+  function handleChange() {
+    throw new Error('This function should not be called')
+  }
   return (
-    <Checkbox disabled name="foo" onChange={setState} value={state.foo}>
+    <Checkbox disabled onChange={handleChange} value={false}>
+      <Text>Text</Text>
+    </Checkbox>
+  )
+}
+
+export const OnValueChange = function () {
+  const [value, setValue] = useState(true)
+  return (
+    <Checkbox onValueChange={setValue} value={value}>
       <Text>Text</Text>
     </Checkbox>
   )

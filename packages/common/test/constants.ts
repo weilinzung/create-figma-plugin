@@ -1,6 +1,6 @@
-import { test } from 'tap'
+import test from 'ava'
 
-import { constants } from '../src/constants'
+import { constants } from '../src/constants.js'
 
 test('is an object', function (t) {
   t.plan(2)

@@ -1,10 +1,10 @@
 {
   "name": "@create-figma-plugin/ui",
-  "version": "0.0.80",
+  "version": "1.2.1",
   "publishConfig": {
     "access": "public"
   },
-  "description": "A library of Preact components that replicate the Figma UI design",
+  "description": "Production-grade Preact components that replicate the Figma UI design",
   "keywords": [
     "components",
     "component-library",
@@ -27,42 +27,83 @@
     "url": "git://github.com/yuanqing/create-figma-plugin.git",
     "directory": "packages/ui"
   },
+  "type": "module",
+  "engines": {
+    "node": ">=14"
+  },
   "files": [
     "lib"
   ],
-  "main": "lib/index.js",
+  "exports": "./lib/index.js",
+  "main": "./lib/index.js",
   "scripts": {
-    "build": "yarn run clean && tsc --module es2020 --moduleResolution node && ts-node scripts/copy-non-ts-files.ts",
-    "clean": "rimraf '*.log' lib 'src/**/*.scss.d.ts' tsconfig.tsbuildinfo",
-    "fix": "eslint --fix '{.storybook,scripts,src}/**/*.{ts,tsx}' && stylelint --fix 'src/**/*.scss' && prettier --loglevel error --write '*.json' '.storybook/**/*.html'",
-    "lint": "eslint '{.storybook,scripts,src}/**/*.{ts,tsx}' && stylelint 'src/**/*.scss'",
+    "build": "yarn run clean && yarn run generate-index-ts && tsc --build && node --loader ts-node/esm scripts/add-js-extension-to-relative-module-paths.ts && yarn run copy-non-ts-files",
+    "clean": "rm -rf '*.log' lib 'src/**/*.css.d.ts' tsconfig.tsbuildinfo",
+    "copy-non-ts-files": "node --loader ts-node/esm scripts/copy-non-ts-files.ts",
+    "fix": "eslint --fix '{.storybook,scripts,src}/**/*.{cjs,js,ts,tsx}' --ignore-pattern '*.css.d.ts' && stylelint --fix 'src/**/*.css' && prettier --loglevel error --write '*.json'",
+    "generate-icons-ts": "node --loader ts-node/esm scripts/generate-icons-ts.ts && eslint --fix 'src/components/icon/**/*.{ts,tsx}' && yarn run generate-index-ts",
+    "generate-index-ts": "node --loader ts-node/esm ../../scripts/generate-index-ts.ts -- 'src/**/*.{ts,tsx}' '!src/**/private/**/*' && eslint --fix src/index.ts",
+    "lint": "eslint '{.storybook,scripts,src}/**/*.{cjs,js,ts,tsx}' && stylelint 'src/**/*.css'",
+    "storybook": "yarn run storybook-clean && mkdirp node_modules && start-storybook --port 4242",
     "storybook-build": "yarn run storybook-clean && mkdirp node_modules && build-storybook --output-dir build",
-    "storybook-clean": "rimraf '*.log' build 'src/**/*.scss.d.ts'",
-    "storybook-deploy": "yarn run storybook-clean && storybook-to-ghpages --out build",
-    "storybook-watch": "yarn run storybook-clean && mkdirp node_modules && start-storybook"
+    "storybook-clean": "rm -rf '*.log' build 'src/**/*.css.d.ts'"
   },
   "dependencies": {
-    "@create-figma-plugin/utilities": "^0.0.80",
-    "@sindresorhus/class-names": "^1.1.0"
+    "@create-figma-plugin/utilities": "^1.2.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.6",
+    "@storybook/addon-storysource": "^6.2.9",
+    "@storybook/preact": "^6.2.9",
+    "@storybook/source-loader": "^6.2.9",
+    "@types/fs-extra": "^9.0.11",
+    "@types/hex-color-regex": "^1.1.0",
+    "@types/node": "^15.12.4",
+    "@types/svgo": "^2.3.0",
+    "change-case": "^4.1.2",
+    "css-loader": "^5.2.6",
+    "eslint": "^7.29.0",
+    "eslint-config-yuanqing": "^0.0.5",
+    "fs-extra": "^10.0.0",
+    "globby": "^11.0.4",
+    "mkdirp": "^1.0.4",
+    "preact": "^10.5.13",
+    "prettier": "^2.3.1",
+    "react": "16.14.0",
+    "react-dom": "16.14.0",
+    "style-loader": "^2.0.0",
+    "stylelint": "^13.13.1",
+    "stylelint-config-yuanqing": "^0.0.1",
+    "svgo": "^2.3.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.4",
+    "webpack": "^5.39.1"
   },
   "peerDependencies": {
     "preact": "^10"
   },
-  "sideEffects": [
-    "./lib/scss/*.scss"
-  ],
-  "eslint": {
-    "ignore": [
-      "src/**/*.scss.d.ts"
+  "eslintConfig": {
+    "extends": "eslint-config-yuanqing",
+    "ignorePatterns": [
+      "*.css.d.ts"
     ],
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "@typescript-eslint/eslint-plugin"
-    ]
+    "rules": {
+      "react/no-unknown-property": [
+        "error",
+        {
+          "ignore": [
+            "class",
+            "clip-rule",
+            "fill-rule",
+            "spellcheck"
+          ]
+        }
+      ]
+    }
   },
-  "storybook-deployer": {
-    "gitUsername": "yuanqing",
-    "gitEmail": "github@yuanqing.sg",
-    "commitMessage": "Deploy Storybook"
+  "prettier": "eslint-config-yuanqing/prettier",
+  "sideEffects": false,
+  "stylelint": {
+    "extends": "stylelint-config-yuanqing"
   }
 }

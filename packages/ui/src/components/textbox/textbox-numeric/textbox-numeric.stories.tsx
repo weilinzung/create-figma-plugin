@@ -1,126 +1,279 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
-import { spaceHorizontalIcon } from '../../icon/icons/space-horizontal-icon'
+import { useInitialFocus } from '../../../hooks/use-initial-focus/use-initial-focus'
+import { MIXED_STRING } from '../../../utilities/mixed-values'
+import { IconLayerFrame16 } from '../../icon/icon-16/icon-layer-frame-16'
 import { TextboxNumeric } from './textbox-numeric'
 
-export default { title: 'Textbox Numeric' }
+export default { title: 'Components/Textbox Numeric' }
 
 export const Empty = function () {
-  const [state, setState] = useState({ foo: '' })
-  return <TextboxNumeric name="foo" onChange={setState} value={state.foo} />
+  const [value, setValue] = useState('')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric onInput={handleInput} value={value} />
 }
 
-export const Disabled = function () {
-  const [state, setState] = useState({ foo: '' })
+export const Focused = function () {
+  const [value, setValue] = useState('')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <TextboxNumeric disabled name="foo" onChange={setState} value={state.foo} />
+    <TextboxNumeric
+      {...useInitialFocus()}
+      onInput={handleInput}
+      value={value}
+    />
   )
 }
 
-export const WithPlaceholder = function () {
-  const [state, setState] = useState({ foo: '' })
+export const Placeholder = function () {
+  const [value, setValue] = useState('')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
     <TextboxNumeric
-      name="foo"
-      onChange={setState}
+      onInput={handleInput}
       placeholder="Placeholder"
-      value={state.foo}
+      value={value}
     />
   )
 }
 
 export const Filled = function () {
-  const [state, setState] = useState({ foo: 42 })
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric onInput={handleInput} value={value} />
+}
+
+export const Disabled = function () {
+  function handleInput() {
+    throw new Error('This function should not be called')
+  }
+  return <TextboxNumeric disabled onInput={handleInput} value="42" />
+}
+
+export const NoBorder = function () {
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric noBorder onInput={handleInput} value={value} />
+}
+
+export const Icon = function () {
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
-    <TextboxNumeric name="foo" onChange={setState} value={`${state.foo}`} />
+    <TextboxNumeric
+      icon={<IconLayerFrame16 />}
+      onInput={handleInput}
+      value={value}
+    />
   )
 }
 
-export const FilledDisabled = function () {
-  const [state, setState] = useState({ foo: 42 })
+export const TextIcon = function () {
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric icon="X" onInput={handleInput} value={value} />
+}
+
+export const RevertOnEscapeKeyDown = function () {
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return (
+    <TextboxNumeric onInput={handleInput} revertOnEscapeKeyDown value={value} />
+  )
+}
+
+export const ValidateOnBlur = function () {
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  function validateOnBlur(value: null | number): null | number | boolean {
+    console.log(value)
+    return value !== null
+  }
   return (
     <TextboxNumeric
-      disabled
-      name="foo"
-      onChange={setState}
-      value={`${state.foo}`}
+      onInput={handleInput}
+      validateOnBlur={validateOnBlur}
+      value={value}
     />
   )
 }
 
 export const Mixed = function () {
-  const [state, setState] = useState({ foo: null })
-  return <TextboxNumeric name="foo" onChange={setState} value={state.foo} />
+  const [value, setValue] = useState(MIXED_STRING)
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric onInput={handleInput} value={value} />
 }
 
-export const NoBorder = function () {
-  const [state, setState] = useState({ foo: 42 })
-  return (
-    <TextboxNumeric
-      name="foo"
-      noBorder
-      onChange={setState}
-      value={`${state.foo}`}
-    />
-  )
-}
-
-export const WithIcon = function () {
-  const [state, setState] = useState({ foo: '' })
-  return (
-    <TextboxNumeric
-      icon={spaceHorizontalIcon}
-      name="foo"
-      onChange={setState}
-      placeholder="Space"
-      value={state.foo}
-    />
-  )
-}
-
-export const WithTextIcon = function () {
-  const [state, setState] = useState({ foo: '' })
-  return (
-    <TextboxNumeric icon="X" name="foo" onChange={setState} value={state.foo} />
-  )
-}
-
-export const Integer = function () {
-  const [state, setState] = useState({ foo: 42 })
-  return (
-    <TextboxNumeric
-      integer
-      name="foo"
-      onChange={setState}
-      value={`${state.foo}`}
-    />
-  )
+export const IntegersOnly = function () {
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric integer onInput={handleInput} value={value} />
 }
 
 export const CustomIncrements = function () {
-  const [state, setState] = useState({ foo: 42 })
+  const [value, setValue] = useState('42')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
     <TextboxNumeric
-      incrementBig={20}
+      incrementBig={8}
       incrementSmall={4}
-      name="foo"
-      onChange={setState}
-      value={`${state.foo}`}
+      onInput={handleInput}
+      value={value}
     />
   )
 }
 
 export const MinimumMaximum = function () {
-  const [state, setState] = useState({ foo: 42 })
+  const [value, setValue] = useState('0')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return (
+    <TextboxNumeric
+      maximum={10}
+      minimum={0}
+      onInput={handleInput}
+      value={value}
+    />
+  )
+}
+
+export const Suffix = function () {
+  const [value, setValue] = useState('100%')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
     <TextboxNumeric
       maximum={100}
       minimum={0}
-      name="foo"
-      onChange={setState}
-      value={`${state.foo}`}
+      onInput={handleInput}
+      suffix="%"
+      value={value}
+    />
+  )
+}
+
+export const SuffixRevertOnEscapeKeyDown = function () {
+  const [value, setValue] = useState('100%')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return (
+    <TextboxNumeric
+      maximum={100}
+      minimum={0}
+      onInput={handleInput}
+      revertOnEscapeKeyDown
+      suffix="%"
+      value={value}
+    />
+  )
+}
+
+export const SuffixValidateOnBlur = function () {
+  const [value, setValue] = useState('100%')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  function validateOnBlur(value: null | number): number | boolean {
+    if (value === null) {
+      return 100
+    }
+    return true
+  }
+  return (
+    <TextboxNumeric
+      maximum={100}
+      minimum={0}
+      onInput={handleInput}
+      revertOnEscapeKeyDown
+      suffix="%"
+      validateOnBlur={validateOnBlur}
+      value={value}
+    />
+  )
+}
+
+export const SuffixMixed = function () {
+  const [value, setValue] = useState(MIXED_STRING)
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <TextboxNumeric onInput={handleInput} suffix="%" value={value} />
+}
+
+export const OnValueInput = function () {
+  const [value, setValue] = useState('42')
+  function handleNumericValueInput(newNumericValue: null | number) {
+    console.log(newNumericValue)
+  }
+  return (
+    <TextboxNumeric
+      onNumericValueInput={handleNumericValueInput}
+      onValueInput={setValue}
+      value={value}
     />
   )
 }

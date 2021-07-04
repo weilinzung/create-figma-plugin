@@ -1,49 +1,71 @@
 /** @jsx h */
-import classnames from '@sindresorhus/class-names'
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
+import { useCallback } from 'preact/hooks'
 
-import { HTMLProps } from '../../types'
-import { componentIcon } from '../icon/icons/component-icon'
-import { frameIcon } from '../icon/icons/frame-icon'
-import styles from './layer.scss'
+import { OnValueChange, Props } from '../../types/types'
+import { createClassName } from '../../utilities/create-class-name'
+import styles from './layer.css'
 
-const icons = {
-  component: componentIcon,
-  frame: frameIcon
-}
-
-export interface LayerProps {
-  children: preact.ComponentChildren
-  onClick: EventListener
+export type LayerProps<Name extends string> = {
+  bold?: boolean
+  children: ComponentChildren
+  name?: Name
+  onChange?: OmitThisParameter<JSX.GenericEventHandler<HTMLInputElement>>
+  onValueChange?: OnValueChange<boolean, Name>
   pageName?: string
-  selected?: boolean
-  type: LayerType
+  icon?: ComponentChildren
+  color?: LayerColor
+  value?: boolean
 }
-type LayerType = 'frame' | 'component'
+export type LayerColor = 'black-30' | 'black-80' | 'purple'
 
-export function Layer({
+export function Layer<Name extends string>({
+  bold = false,
   children,
-  onClick,
+  color = 'black-80',
+  name,
+  onChange = function () {},
+  onValueChange = function () {},
   pageName,
-  selected,
-  type,
+  value = false,
+  icon,
   ...rest
-}: HTMLProps<LayerProps, HTMLDivElement>): h.JSX.Element {
+}: Props<HTMLInputElement, LayerProps<Name>>): JSX.Element {
+  const handleChange = useCallback(
+    function (event: JSX.TargetedEvent<HTMLInputElement>): void {
+      const newValue = event.currentTarget.checked
+      onValueChange(newValue, name)
+      onChange(event)
+    },
+    [name, onChange, onValueChange]
+  )
+
   return (
-    <div
-      {...rest}
-      class={classnames(
-        styles[type],
-        styles.layer,
-        selected === true ? styles.selected : null
+    <label class={createClassName([styles.layer, styles[color]])}>
+      <input
+        {...rest}
+        checked={value === true}
+        class={styles.input}
+        name={name}
+        onChange={handleChange}
+        tabIndex={0}
+        type="checkbox"
+      />
+      <div class={styles.fill} />
+      {typeof icon === 'undefined' ? null : (
+        <div class={styles.icon}>{icon}</div>
       )}
-      onClick={onClick}
-    >
-      <div class={styles.icon}>{icons[type]}</div>
-      <div class={styles.layerName}>{children}</div>
-      {typeof pageName !== 'undefined' ? (
+      <div
+        class={createClassName([
+          styles.layerName,
+          bold === true ? styles.bold : null
+        ])}
+      >
+        {children}
+      </div>
+      {typeof pageName === 'undefined' ? null : (
         <div class={styles.pageName}>{pageName}</div>
-      ) : null}
-    </div>
+      )}
+    </label>
   )
 }

@@ -1,24 +1,49 @@
-import * as npmlog from 'npmlog'
+import { blue, green, red } from 'kleur/colors'
+const ESC = '\u001B['
 
-npmlog.disp.error = 'error'
-npmlog.style.error = {
-  fg: 'red'
-}
-function error(message: string): void {
-  npmlog.error('', message)
-}
-
-npmlog.style.info.fg = 'blue'
-function info(message: string): void {
-  npmlog.info('', message)
+function clearPreviousLine(): void {
+  if (process.stdout.isTTY === false) {
+    return
+  }
+  // Move cursor to start of previous line
+  process.stdout.write(`${ESC}F`)
+  // Delete from cursor to end of current line
+  process.stdout.write(`${ESC}K`)
 }
 
-npmlog.addLevel('success', 3001, { fg: 'green' })
-function success(message: string): void {
-  npmlog.success('', message)
+function clearViewport(): void {
+  if (process.stdout.isTTY === false) {
+    return
+  }
+  console.clear() // eslint-disable-line no-console
+}
+
+function error(message: string, option?: { clearPreviousLine: boolean }): void {
+  if (typeof option !== 'undefined' && option.clearPreviousLine === true) {
+    clearPreviousLine()
+  }
+  console.error(`${red('error')} ${message}`) // eslint-disable-line no-console
+}
+
+function info(message: string, option?: { clearPreviousLine: boolean }): void {
+  if (typeof option !== 'undefined' && option.clearPreviousLine === true) {
+    clearPreviousLine()
+  }
+  console.info(`${blue('info')} ${message}`) // eslint-disable-line no-console
+}
+
+function success(
+  message: string,
+  option?: { clearPreviousLine: boolean }
+): void {
+  if (typeof option !== 'undefined' && option.clearPreviousLine === true) {
+    clearPreviousLine()
+  }
+  console.log(`${green('success')} ${message}`) // eslint-disable-line no-console
 }
 
 export const log = {
+  clearViewport,
   error,
   info,
   success

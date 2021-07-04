@@ -1,10 +1,10 @@
-# Passing data between the plugin command’s main and UI contexts
+## Passing data between the plugin command’s main and UI contexts
 
-`@create-figma-plugin/utilities` offers 3 functions to facilitate data passing (in both directions) between our plugin command’s main and UI contexts:
+The [`@create-figma-plugin/utilities`](#utilities) library includes 3 functions to facilitate data passing (in both directions) between our plugin command’s [main and UI contexts](#figmas-plugin-execution-model):
 
-- [`on(eventName, eventHandler)`](/docs/utilities/modules/_events_.md#on) — Registers an `eventHandler` for the given `eventName`.
-- [`once(eventName, eventHandler)`](/docs/utilities/modules/_events_.md#once) — Ditto `on`, only that the `eventHandler` will run at most once.
-- [`emit(eventName *[, ...arguments]*)`](/docs/utilities/modules/_events_.md#const-emit) — Calling `emit` in the main context invokes the event handler for the matching `eventName` in your UI. Correspondingly, calling `emit` in your UI invokes the event handler for the matching `eventName` in the main context. All `arguments` passed after `eventName` will be directly [applied](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply) on the event handler.
+- [`on(name, handler)`](#onhandlername-handler) — Registers an event `handler` for the given event `name`.
+- [`once(name, handler)`](#oncehandlername-handler) — Ditto `on`, only that `handler` will run at most once.
+- [`emit(name, ...args)`](#emithandlername-args) — Calling `emit` in the main context invokes the event handler for the matching event `name` in your UI. Correspondingly, calling `emit` in your UI invokes the event handler for the matching event `name` in the main context. All `arguments` passed after `name` will be directly [applied](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply) on the event handler.
 
 Consider a toy example:
 
@@ -25,10 +25,9 @@ export default function () {
 }
 ```
 
-```tsx
+```ts
 // src/ui.tsx
 
-/** @jsx h */
 import { render, Button } from '@create-figma-plugin/ui'
 import {
   emit,

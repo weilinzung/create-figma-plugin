@@ -1,81 +1,66 @@
 /** @jsx h */
-import classnames from '@sindresorhus/class-names'
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
 import { useCallback } from 'preact/hooks'
 
-import { HTMLProps, OnChange } from '../../types'
-import { ENTER_KEY_CODE, ESCAPE_KEY_CODE } from '../../utilities/key-codes'
-import { checkIcon } from '../icon/icons/check-icon'
-import styles from './selectable-item.scss'
+import { OnValueChange, Props } from '../../types/types'
+import { createClassName } from '../../utilities/create-class-name'
+import { IconMenuCheckmarkChecked16 } from '../icon/icon-16/icon-menu-checkmark-checked-16'
+import styles from './selectable-item.css'
 
-export interface SelectableItemProps {
+export type SelectableItemProps<Name extends string> = {
   bold?: boolean
-  children: preact.ComponentChildren
+  children: ComponentChildren
   disabled?: boolean
   indent?: boolean
-  name: string
-  onChange: OnChange
-  onKeyDown?: EventListener
+  name?: Name
+  onChange?: OmitThisParameter<JSX.GenericEventHandler<HTMLInputElement>>
+  onValueChange?: OnValueChange<boolean, Name>
   propagateEscapeKeyDown?: boolean
   value: boolean
 }
 
-export function SelectableItem({
-  bold,
+export function SelectableItem<Name extends string>({
+  bold = false,
   children,
-  disabled,
-  indent,
+  disabled = false,
+  indent = false,
   name,
-  onChange,
-  onKeyDown,
+  onChange = function () {},
+  onValueChange = function () {},
   propagateEscapeKeyDown = true,
-  value,
+  value = false,
   ...rest
-}: HTMLProps<SelectableItemProps, HTMLInputElement>): h.JSX.Element {
+}: Props<HTMLInputElement, SelectableItemProps<Name>>): JSX.Element {
   const handleChange = useCallback(
-    function (event: Event) {
-      const newValue = !(value === true)
-      onChange({ [name]: newValue }, newValue, name, event)
+    function (event: JSX.TargetedEvent<HTMLInputElement>): void {
+      onValueChange(!value, name)
+      onChange(event)
     },
-    [name, onChange, value]
+    [name, onChange, onValueChange, value]
   )
 
   const handleKeyDown = useCallback(
-    function (event: KeyboardEvent) {
-      switch (event.keyCode) {
-        case ESCAPE_KEY_CODE: {
-          if (propagateEscapeKeyDown === false) {
-            event.stopPropagation()
-          }
-          ;(event.target as HTMLElement).blur()
-          break
-        }
-        case ENTER_KEY_CODE: {
-          event.stopPropagation()
-          const newValue = !(value === true)
-          onChange({ [name]: newValue }, newValue, name, event)
-          break
-        }
+    function (event: JSX.TargetedKeyboardEvent<HTMLInputElement>): void {
+      if (event.key !== 'Escape') {
+        return
       }
-      if (typeof onKeyDown === 'function') {
-        onKeyDown(event)
+      if (propagateEscapeKeyDown === false) {
+        event.stopPropagation()
       }
+      event.currentTarget.blur()
     },
-    [name, value, onChange, onKeyDown, propagateEscapeKeyDown]
+    [propagateEscapeKeyDown]
   )
 
   return (
     <label
-      {...(rest as any)}
-      class={classnames(
-        styles.label,
+      class={createClassName([
+        styles.selectableItem,
         disabled === true ? styles.disabled : null,
         bold === true ? styles.bold : null,
         indent === true ? styles.indent : null,
         value === true ? styles.checked : null
-      )}
-      onKeyDown={disabled === true ? undefined : handleKeyDown}
-      tabIndex={disabled === true ? undefined : 0}
+      ])}
     >
       <input
         {...rest}
@@ -84,11 +69,16 @@ export function SelectableItem({
         disabled={disabled === true}
         name={name}
         onChange={handleChange}
-        tabIndex={-1}
+        onKeyDown={disabled === true ? undefined : handleKeyDown}
+        tabIndex={disabled === true ? -1 : 0}
         type="checkbox"
       />
-      <div class={styles.text}>{children}</div>
-      {value === true ? <div class={styles.icon}>{checkIcon}</div> : null}
+      <div class={styles.children}>{children}</div>
+      {value === true ? (
+        <div class={styles.checkIcon}>
+          <IconMenuCheckmarkChecked16 />
+        </div>
+      ) : null}
     </label>
   )
 }

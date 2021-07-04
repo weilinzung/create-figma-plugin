@@ -1,8 +1,5 @@
 export type Settings = {
-  name: string
-  displayName?: string
-  template: string
-  version?: string
-  author?: string
-  license?: string
+  readonly name: string
+  readonly displayName?: string
+  readonly template: string
 }

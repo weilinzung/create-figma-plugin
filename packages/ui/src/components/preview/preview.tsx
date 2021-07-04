@@ -1,17 +1,17 @@
 /** @jsx h */
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
 
-import { HTMLProps } from '../../types'
-import style from './preview.scss'
+import { Props } from '../../types/types'
+import style from './preview.css'
 
-export interface PreviewProps {
-  children: preact.ComponentChildren
+export type PreviewProps = {
+  children: ComponentChildren
 }
 
 export function Preview({
   children,
   ...rest
-}: HTMLProps<PreviewProps, HTMLDivElement>): h.JSX.Element {
+}: Props<HTMLDivElement, PreviewProps>): JSX.Element {
   return (
     <div {...rest} class={style.preview}>
       {children}

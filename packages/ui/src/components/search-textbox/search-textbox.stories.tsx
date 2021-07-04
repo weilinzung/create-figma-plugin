@@ -1,36 +1,81 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
+import { useInitialFocus } from '../../hooks/use-initial-focus/use-initial-focus'
 import { SearchTextbox } from './search-textbox'
 
-export default { title: 'Search Textbox' }
+export default { title: 'Components/Search Textbox' }
 
 export const Empty = function () {
-  const [state, setState] = useState({ foo: '' })
-  return <SearchTextbox name="foo" onChange={setState} value={state.foo} />
+  const [value, setValue] = useState('')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <SearchTextbox onInput={handleInput} value={value} />
 }
 
-export const WithPlaceholder = function () {
-  const [state, setState] = useState({ foo: '' })
+export const Focused = function () {
+  const [value, setValue] = useState('')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return (
+    <SearchTextbox {...useInitialFocus()} onInput={handleInput} value={value} />
+  )
+}
+
+export const Placeholder = function () {
+  const [value, setValue] = useState('')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
   return (
     <SearchTextbox
-      name="foo"
-      onChange={setState}
+      onInput={handleInput}
       placeholder="Placeholder"
-      value={state.foo}
+      value={value}
     />
   )
 }
 
 export const Filled = function () {
-  const [state, setState] = useState({ foo: 'Text' })
-  return <SearchTextbox name="foo" onChange={setState} value={state.foo} />
+  const [value, setValue] = useState('Text')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <SearchTextbox onInput={handleInput} value={value} />
+}
+
+export const ClearOnEscapeKeyDown = function () {
+  const [value, setValue] = useState('Text')
+  function handleInput(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return (
+    <SearchTextbox clearOnEscapeKeyDown onInput={handleInput} value={value} />
+  )
 }
 
 export const Disabled = function () {
-  const [state, setState] = useState({ foo: 'Text' })
-  return (
-    <SearchTextbox disabled name="foo" onChange={setState} value={state.foo} />
-  )
+  function handleInput() {
+    throw new Error('This function should not be called')
+  }
+  return <SearchTextbox disabled onInput={handleInput} value="Text" />
+}
+
+export const OnValueChange = function () {
+  const [value, setValue] = useState('Text')
+  return <SearchTextbox onValueInput={setValue} value={value} />
 }

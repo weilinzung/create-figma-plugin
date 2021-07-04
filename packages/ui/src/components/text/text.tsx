@@ -1,36 +1,37 @@
 /** @jsx h */
-import classnames from '@sindresorhus/class-names'
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
 
-import { Alignment, HTMLProps } from '../../types'
-import styles from './text.scss'
+import { Props } from '../../types/types'
+import { createClassName } from '../../utilities/create-class-name'
+import styles from './text.css'
 
-export interface TextProps {
-  children: preact.ComponentChildren
-  align?: Alignment
+export type TextProps = {
+  children: ComponentChildren
+  align?: TextAlignment
   bold?: boolean
   muted?: boolean
   numeric?: boolean
 }
+export type TextAlignment = 'left' | 'center' | 'right'
 
 export function Text({
   align = 'left',
-  bold,
+  bold = false,
   children,
-  muted,
-  numeric,
+  muted = false,
+  numeric = false,
   ...rest
-}: HTMLProps<TextProps, HTMLDivElement>): h.JSX.Element {
+}: Props<HTMLDivElement, TextProps>): JSX.Element {
   return (
     <div
       {...rest}
-      class={classnames(
+      class={createClassName([
         styles.text,
         styles[align],
         bold === true ? styles.bold : null,
         muted === true ? styles.muted : null,
         numeric === true ? styles.numeric : null
-      )}
+      ])}
     >
       {children}
     </div>

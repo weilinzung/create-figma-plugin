@@ -1,86 +1,81 @@
-import { useCallback, useEffect, useRef } from 'preact/hooks'
+import { RefObject } from 'preact'
+import { useCallback } from 'preact/hooks'
 
-import { DOWN_KEY_CODE, UP_KEY_CODE } from '../utilities/key-codes'
-
-export const INVALID_MENU_ITEM_ID = null
-
-export type MenuItemId = null | string
+import { getCurrentFromRef } from '../utilities/get-current-from-ref'
 
 export function useScrollableMenu(options: {
-  itemElementAttributeName: string
-  selectedItemId: MenuItemId
-  onChange: (id: MenuItemId) => void
-  changeOnMouseOver: boolean
-}) {
-  const {
-    itemElementAttributeName,
-    selectedItemId,
-    onChange,
-    changeOnMouseOver = true
-  } = options
-  const menuElementRef: preact.RefObject<HTMLElement> = useRef(null)
-  const parseItemElementId = useCallback(
-    function (element: HTMLElement): MenuItemId {
-      return element.getAttribute(itemElementAttributeName)
-    },
-    [itemElementAttributeName]
-  )
+  itemIdDataAttributeName: string
+  menuElementRef: RefObject<HTMLDivElement>
+  selectedId: null | string
+  setSelectedId: (selectedId: string) => void
+}): {
+  handleScrollableMenuKeyDown: (event: KeyboardEvent) => void
+  handleScrollableMenuItemMouseMove: (event: MouseEvent) => void
+} {
+  const { itemIdDataAttributeName, menuElementRef, selectedId, setSelectedId } =
+    options
+
   const getItemElements = useCallback(
     function (): Array<HTMLElement> {
-      const menuElement = menuElementRef.current
-      if (menuElement === null || typeof menuElement === 'undefined') {
-        return []
-      }
       return Array.from(
-        menuElement.querySelectorAll(`[${itemElementAttributeName}]`)
-      )
-    },
-    [menuElementRef, itemElementAttributeName]
-  )
-  const getItemIndex = useCallback(
-    function (id: MenuItemId): number {
-      if (id === INVALID_MENU_ITEM_ID) {
-        return -1
-      }
-      return getItemElements().findIndex(function (element) {
-        return parseItemElementId(element) === id
+        getCurrentFromRef(menuElementRef).querySelectorAll<HTMLElement>(
+          `[${itemIdDataAttributeName}]`
+        )
+      ).filter(function (element: HTMLElement): boolean {
+        return element.hasAttribute('disabled') === false
       })
     },
-    [getItemElements, parseItemElementId]
+    [itemIdDataAttributeName, menuElementRef]
   )
-  const updateScrollPosition = useCallback(
-    function (id: MenuItemId): void {
-      const itemElements = getItemElements()
-      const index = getItemIndex(id)
+
+  const findIndexByItemId = useCallback(
+    function (id: null | string): number {
+      if (id === null) {
+        return -1
+      }
+      const index = getItemElements().findIndex(function (
+        element: HTMLElement
+      ): boolean {
+        return (element.getAttribute(itemIdDataAttributeName) as string) === id
+      })
       if (index === -1) {
-        return
+        throw new Error('Invariant violation') // `id` is valid
       }
-      const selectedElement = itemElements[index] as HTMLElement
-      const menuElement = menuElementRef.current
-      if (menuElement === null || typeof menuElement === 'undefined') {
-        return
-      }
-      if (selectedElement.offsetTop < menuElement.scrollTop) {
+      return index
+    },
+    [getItemElements, itemIdDataAttributeName]
+  )
+
+  const updateScrollPosition = useCallback(
+    function (id: string): void {
+      const itemElements = getItemElements()
+      const index = findIndexByItemId(id)
+      const selectedElement = itemElements[index]
+      const menuElement = getCurrentFromRef(menuElementRef)
+      const scrollTop = menuElement.scrollTop
+      const offsetTop = computeRelativeOffsetTop(selectedElement, menuElement)
+      if (offsetTop < scrollTop) {
         // Selected element is above the visible items at the current scroll position
-        menuElement.scrollTop = selectedElement.offsetTop
+        menuElement.scrollTop = offsetTop
         return
       }
-      const offsetBottom =
-        selectedElement.offsetTop + selectedElement.offsetHeight
+      const offsetBottom = offsetTop + selectedElement.offsetHeight
       if (offsetBottom > menuElement.scrollTop + menuElement.offsetHeight) {
         // Selected element is below the visible items at the current scroll position
         menuElement.scrollTop = offsetBottom - menuElement.offsetHeight
       }
     },
-    [getItemElements, getItemIndex, menuElementRef]
+    [findIndexByItemId, getItemElements, menuElementRef]
   )
-  const handleKeyDown = useCallback(
+
+  const handleScrollableMenuKeyDown = useCallback(
     function (event: KeyboardEvent): void {
-      if (event.keyCode === DOWN_KEY_CODE || event.keyCode === UP_KEY_CODE) {
+      const key = event.key
+      if (key === 'ArrowDown' || key === 'ArrowUp') {
         const itemElements = getItemElements()
-        const index = getItemIndex(selectedItemId)
+        const index = findIndexByItemId(selectedId)
         let newIndex
-        if (event.keyCode === DOWN_KEY_CODE) {
+        if (key === 'ArrowDown') {
           newIndex =
             index === -1 || index === itemElements.length - 1 ? 0 : index + 1
         } else {
@@ -88,58 +83,54 @@ export function useScrollableMenu(options: {
             index === -1 || index === 0 ? itemElements.length - 1 : index - 1
         }
         const selectedElement = itemElements[newIndex]
-        const id = parseItemElementId(selectedElement)
-        onChange(id)
-        updateScrollPosition(id)
+        const newSelectedId = selectedElement.getAttribute(
+          itemIdDataAttributeName
+        ) as string
+        setSelectedId(newSelectedId)
+        updateScrollPosition(newSelectedId)
       }
     },
     [
       getItemElements,
-      getItemIndex,
-      onChange,
-      parseItemElementId,
-      selectedItemId,
+      findIndexByItemId,
+      itemIdDataAttributeName,
+      setSelectedId,
+      selectedId,
       updateScrollPosition
     ]
   )
-  const handleMouseMove = useCallback(
+
+  const handleScrollableMenuItemMouseMove = useCallback(
     function (event: MouseEvent): void {
-      const id = parseItemElementId(event.target as HTMLElement)
-      if (id !== selectedItemId) {
-        onChange(id)
+      const id = (event.currentTarget as HTMLElement).getAttribute(
+        // FIXME
+        itemIdDataAttributeName
+      ) as string
+      if (id !== selectedId) {
+        setSelectedId(id)
       }
     },
-    [onChange, parseItemElementId, selectedItemId]
+    [itemIdDataAttributeName, selectedId, setSelectedId]
   )
-  useEffect(
-    function (): void {
-      const menuElement = menuElementRef.current
-      if (menuElement === null || typeof menuElement === 'undefined') {
-        return
-      }
-      menuElement.setAttribute('style', 'position: relative; overflow-y: auto')
-    },
-    [menuElementRef]
-  )
-  useEffect(
-    function (): void | (() => void) {
-      if (changeOnMouseOver === false) {
-        return
-      }
-      const itemElements = getItemElements()
-      if (itemElements.length === 0) {
-        return
-      }
-      for (const element of itemElements) {
-        element.addEventListener('mousemove', handleMouseMove)
-      }
-      return function () {
-        for (const element of itemElements) {
-          element.removeEventListener('mousemove', handleMouseMove)
-        }
-      }
-    },
-    [changeOnMouseOver, getItemElements, handleMouseMove]
-  )
-  return { handleKeyDown, menuElementRef, updateScrollPosition }
+
+  return {
+    handleScrollableMenuItemMouseMove,
+    handleScrollableMenuKeyDown
+  }
+}
+
+function computeRelativeOffsetTop(
+  targetElement: HTMLElement,
+  parentElement: HTMLElement
+): number {
+  let element = targetElement
+  let offsetTop = 0
+  while (element !== parentElement) {
+    offsetTop += element.offsetTop
+    if (element.parentElement === null) {
+      throw new Error('`element.parentElement` is `null`')
+    }
+    element = element.parentElement
+  }
+  return offsetTop
 }

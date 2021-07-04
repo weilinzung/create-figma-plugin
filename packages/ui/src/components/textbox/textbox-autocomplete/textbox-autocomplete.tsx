@@ -1,567 +1,620 @@
 /** @jsx h */
-import classnames from '@sindresorhus/class-names'
-import { h } from 'preact'
-import { useCallback, useLayoutEffect, useRef, useState } from 'preact/hooks'
+import { ComponentChildren, h, JSX, RefObject } from 'preact'
+import { useCallback, useRef, useState } from 'preact/hooks'
 
-import { HTMLProps, Option } from '../../../types'
-import {
-  BACKSPACE_KEY_CODE,
-  DELETE_KEY_CODE,
-  DOWN_KEY_CODE,
-  ENTER_KEY_CODE,
-  ESCAPE_KEY_CODE,
-  TAB_KEY_CODE,
-  UP_KEY_CODE
-} from '../../../utilities/key-codes'
-import { TextboxProps } from '../textbox'
-import styles from '../textbox.scss'
-import { computeNextValue } from '../utilities/compute-next-value'
-import { isKeyCodeCharacterGenerating } from '../utilities/is-keycode-character-generating'
-import textboxAutocompleteStyles from './textbox-autocomplete.scss'
+import menuStyles from '../../../css/menu.css'
+import { useMouseDownOutside } from '../../../hooks/use-mouse-down-outside'
+import { OnValueChange, Props } from '../../../types/types'
+import { createClassName } from '../../../utilities/create-class-name'
+import { getCurrentFromRef } from '../../../utilities/get-current-from-ref'
+import { IconMenuCheckmarkChecked16 } from '../../icon/icon-16/icon-menu-checkmark-checked-16'
+import { computeNextValue } from '../private/compute-next-value'
+import { isKeyCodeCharacterGenerating } from '../private/is-keycode-character-generating'
+import textboxStyles from '../textbox/textbox.css'
+import textboxAutocompleteStyles from './textbox-autocomplete.css'
 
 const EMPTY_STRING = ''
-const INVALID_MENU_ITEM_ID = null
+const INVALID_ID = null
+const ITEM_ID_DATA_ATTRIBUTE_NAME = 'data-textbox-autocomplete-item-id'
+const MENU_VERTICAL_MARGIN = 16
 
-type Value = null | string
-type MenuItemId = null | string
-
-export type TextboxAutocompleteOption = Option
-export interface TextboxAutocompleteProps extends TextboxProps {
+export type TextboxAutocompleteProps<Name extends string> = {
+  disabled?: boolean
   filter?: boolean
-  options: TextboxAutocompleteOption[]
+  icon?: ComponentChildren
+  name?: Name
+  noBorder?: boolean
+  onInput?: OmitThisParameter<JSX.GenericEventHandler<HTMLInputElement>>
+  onValueInput?: OnValueChange<string, Name>
+  options: Array<TextboxAutocompleteOption>
+  placeholder?: string
+  propagateEscapeKeyDown?: boolean
+  revertOnEscapeKeyDown?: boolean
+  spellCheck?: boolean
   strict?: boolean
   top?: boolean
+  value: string
+}
+export type TextboxAutocompleteOption =
+  | TextboxAutocompleteOptionHeader
+  | TextboxAutocompleteOptionValue
+  | TextboxAutocompleteOptionSeparator
+export type TextboxAutocompleteOptionHeader = {
+  header: string
+}
+export type TextboxAutocompleteOptionValue = {
+  value: string
+  disabled?: boolean
+}
+export type TextboxAutocompleteOptionSeparator = {
+  separator: true
 }
 
-export function TextboxAutocomplete({
-  disabled,
-  focused,
-  filter,
+type Option =
+  | TextboxAutocompleteOptionHeader
+  | OptionValueWithId
+  | TextboxAutocompleteOptionSeparator
+type OptionValueWithId = TextboxAutocompleteOptionValue & {
+  id: string
+}
+type Id = typeof INVALID_ID | string
+
+export function TextboxAutocomplete<Name extends string>({
+  disabled = false,
+  filter = false,
   icon,
   name,
-  noBorder,
-  onChange,
-  options,
+  noBorder = false,
+  onInput = function () {},
+  onValueInput = function () {},
   placeholder,
-  strict,
-  top,
-  value: committedValue,
+  propagateEscapeKeyDown = true,
+  revertOnEscapeKeyDown = false,
+  spellCheck = false,
+  strict = false,
+  top = false,
+  value,
   ...rest
-}: HTMLProps<TextboxAutocompleteProps, HTMLInputElement>): h.JSX.Element {
-  const rootElementRef: preact.RefObject<HTMLDivElement> = useRef(null)
-  const inputElementRef: preact.RefObject<HTMLInputElement> = useRef(null)
-  const menuElementRef: preact.RefObject<HTMLDivElement> = useRef(null)
-  const scrollTopRef = useRef(0)
-  const shouldSelectAllRef = useRef(false) // Whether to select the contents of the textbox
-
-  const [currentValue, setCurrentValue]: [Value, any] = useState(EMPTY_STRING)
-  const [isMenuVisible, setIsMenuVisible] = useState(false)
-  const [selectedId, setSelectedId]: [MenuItemId, any] = useState(
-    INVALID_MENU_ITEM_ID
-  )
-
-  let menuItems: TextboxAutocompleteOption[] = options.map(function (
-    option,
-    index
-  ) {
-    return {
-      id: `${index}`,
-      ...option
-    }
-  })
-
-  const isValidValue = useCallback(
-    function (value: Value): boolean {
-      if (value === EMPTY_STRING || value === null) {
-        return true
-      }
-      for (const menuItem of menuItems) {
-        if ('value' in menuItem) {
-          if (menuItem.value.toLowerCase().indexOf(value.toLowerCase()) === 0) {
-            return true
-          }
-        }
-      }
-      return false
-    },
-    [menuItems]
-  )
-
-  const getIdByValue = useCallback(
-    function (value: Value): MenuItemId {
-      if (value === EMPTY_STRING || value === null) {
-        return INVALID_MENU_ITEM_ID
-      }
-      for (const menuItem of menuItems) {
-        if ('value' in menuItem) {
-          if (menuItem.value === value) {
-            return menuItem.id as MenuItemId
-          }
-        }
-      }
-      return INVALID_MENU_ITEM_ID
-    },
-    [menuItems]
-  )
-
-  if (
-    filter === true &&
-    (isValidValue(committedValue) === false || currentValue !== EMPTY_STRING)
-  ) {
-    menuItems = menuItems.filter(function (menuItem) {
-      if ('value' in menuItem) {
-        return (
-          menuItem.value.toLowerCase().indexOf(currentValue.toLowerCase()) !==
-          -1
-        )
-      }
-      return false
-    })
+}: Props<HTMLInputElement, TextboxAutocompleteProps<Name>>): JSX.Element {
+  if (typeof icon === 'string' && icon.length !== 1) {
+    throw new Error(`String \`icon\` must be a single character: ${icon}`)
   }
 
-  const findMenuItemById = useCallback(
-    function (targetId: MenuItemId): null | TextboxAutocompleteOption {
-      const result = menuItems.find(function ({ id }) {
-        return id === targetId
-      })
-      return typeof result === 'undefined' ? null : result
-    },
-    [menuItems]
-  )
+  const rootElementRef: RefObject<HTMLDivElement> = useRef(null)
+  const inputElementRef: RefObject<HTMLInputElement> = useRef(null)
+  const menuElementRef: RefObject<HTMLDivElement> = useRef(null)
 
-  const computeNextId = useCallback(
-    function (id: MenuItemId): MenuItemId {
-      if (id === INVALID_MENU_ITEM_ID) {
-        return menuItems[0].id as MenuItemId
-      }
-      let foundCurrentMenuItem = false
-      let index = -1
-      while (index++ < menuItems.length - 1) {
-        const menuItem = menuItems[index]
-        if ('value' in menuItem) {
-          if (foundCurrentMenuItem === true) {
-            // We've found the item after the current menu item with a `.value`
-            break
-          }
-          if (menuItem.id === id) {
-            foundCurrentMenuItem = true
-          }
-        }
-      }
-      if (index === menuItems.length) {
-        // Reached the end of `menuItems`
-        return getIdByValue(currentValue) === INVALID_MENU_ITEM_ID
-          ? INVALID_MENU_ITEM_ID
-          : (menuItems[0].id as MenuItemId)
-      }
-      return menuItems[index].id as MenuItemId
-    },
-    [currentValue, getIdByValue, menuItems]
-  )
+  const [isMenuVisible, setIsMenuVisible] = useState(false)
+  const [selectedId, setSelectedId] = useState<Id>(INVALID_ID)
+  const [originalValue, setOriginalValue] = useState(EMPTY_STRING) // Value of the textbox when it was initially focused
+  const [editedValue, setEditedValue] = useState<string>(value) // Value being edited that does not match any of the options
 
-  const computePreviousId = useCallback(
-    function (id: MenuItemId): MenuItemId {
-      if (id === INVALID_MENU_ITEM_ID) {
-        return menuItems[menuItems.length - 1].id as MenuItemId
+  let options: Array<Option> = createOptions(rest.options)
+  if (filter === true) {
+    options = filterOptions(options, value, editedValue)
+  }
+
+  // Uncomment to debug
+  // console.table([{ isMenuVisible, selectedId, originalValue, editedValue, value }])
+
+  const triggerBlur = useCallback(function (): void {
+    setIsMenuVisible(false)
+    setOriginalValue(EMPTY_STRING)
+    setEditedValue(EMPTY_STRING)
+    setSelectedId(INVALID_ID)
+    getCurrentFromRef(inputElementRef).blur()
+  }, [])
+
+  // Adjust the menu scroll position so that the selected option is always visible
+  const updateScrollPosition = useCallback(function (id: Id): void {
+    const menuElement = getCurrentFromRef(menuElementRef)
+    if (id === INVALID_ID) {
+      menuElement.scrollTop = 0
+      return
+    }
+    const selectedElement = menuElement.querySelector<HTMLDivElement>(
+      `[${ITEM_ID_DATA_ATTRIBUTE_NAME}='${id}']`
+    )
+    if (selectedElement === null) {
+      throw new Error('Invariant violation') // `id` is valid
+    }
+    const y =
+      selectedElement.getBoundingClientRect().y -
+      menuElement.getBoundingClientRect().y
+    if (y < menuElement.scrollTop) {
+      menuElement.scrollTop = y
+      return
+    }
+    const offsetBottom = y + selectedElement.offsetHeight
+    if (offsetBottom > menuElement.scrollTop + menuElement.offsetHeight) {
+      menuElement.scrollTop = offsetBottom - menuElement.offsetHeight
+    }
+  }, [])
+
+  const updateEditedValue = useCallback(
+    function (editedValue: string): void {
+      const newId = getIdByValue(options, editedValue)
+      if (newId === INVALID_ID) {
+        // `newValue` does not match any option in `options`
+        setEditedValue(editedValue)
+        setSelectedId(INVALID_ID)
+        updateScrollPosition(INVALID_ID)
+        return
       }
-      let foundCurrentMenuItem = false
-      let index = menuItems.length
-      while (index-- > 0) {
-        const menuItem = menuItems[index]
-        if ('value' in menuItem) {
-          if (foundCurrentMenuItem === true) {
-            // We've found the item after the current menu item with a `.value`
-            break
-          }
-          if (menuItem.id === id) {
-            foundCurrentMenuItem = true
-          }
-        }
-      }
-      if (index === -1) {
-        // Reached the beginning of `menuItems`
-        return getIdByValue(currentValue) === INVALID_MENU_ITEM_ID
-          ? INVALID_MENU_ITEM_ID
-          : (menuItems[menuItems.length - 1].id as MenuItemId)
-      }
-      return menuItems[index].id as MenuItemId
+      // `newValue` matches one of the options in `options`
+      setEditedValue(EMPTY_STRING)
+      setSelectedId(newId)
+      updateScrollPosition(newId)
     },
-    [currentValue, getIdByValue, menuItems]
+    [options, updateScrollPosition]
   )
 
   const handleFocus = useCallback(
-    function (): void {
+    function (event: JSX.TargetedFocusEvent<HTMLInputElement>): void {
       setIsMenuVisible(true)
-      if (
-        committedValue !== EMPTY_STRING &&
-        isValidValue(committedValue) === false
-      ) {
-        // Copy over `committedValue` to `currentValue`
-        setCurrentValue(committedValue as string)
-      }
+      updateMenuElementMaxHeight(
+        getCurrentFromRef(rootElementRef),
+        getCurrentFromRef(menuElementRef),
+        top
+      )
+      setOriginalValue(value)
+      updateEditedValue(value)
+      const inputElement = event.currentTarget
+      inputElement.focus()
+      inputElement.select()
     },
-    [committedValue, isValidValue]
+    [top, updateEditedValue, value]
+  )
+
+  const handleInput = useCallback(
+    function (event: JSX.TargetedEvent<HTMLInputElement>): void {
+      const newValue = event.currentTarget.value
+      updateEditedValue(newValue)
+      onValueInput(newValue, name)
+      onInput(event)
+    },
+    [name, onInput, onValueInput, updateEditedValue]
   )
 
   const handleKeyDown = useCallback(
-    function (event: KeyboardEvent): void {
-      const keyCode = event.keyCode
-      if (keyCode === UP_KEY_CODE || keyCode === DOWN_KEY_CODE) {
+    function (event: JSX.TargetedKeyboardEvent<HTMLInputElement>): void {
+      const inputElement = event.currentTarget
+      const key = event.key
+      if (key === 'ArrowUp' || key === 'ArrowDown') {
         event.preventDefault()
-        if (menuItems.length === 0) {
+        if (options.length === 0) {
           return
         }
-        if (isMenuVisible === false) {
-          setIsMenuVisible(true)
+        const newId =
+          key === 'ArrowUp'
+            ? computePreviousId(options, selectedId)
+            : computeNextId(options, selectedId)
+        if (newId === INVALID_ID) {
+          // Reached beginning/end of list of `options`, so just restore `savedValue`
+          setSelectedId(INVALID_ID)
+          inputElement.value = editedValue
+          onValueInput(editedValue, name)
+          onInput(event)
+          updateScrollPosition(INVALID_ID)
           return
         }
-        const nextId =
-          keyCode === UP_KEY_CODE
-            ? computePreviousId(selectedId)
-            : computeNextId(selectedId)
-        shouldSelectAllRef.current = true
-        setSelectedId(nextId)
-        if (nextId === INVALID_MENU_ITEM_ID) {
-          onChange({ [name]: currentValue }, currentValue, name, event)
-        } else {
-          const menuItem = findMenuItemById(nextId)
-          if (menuItem !== null && 'value' in menuItem) {
-            const newValue = menuItem.value
-            onChange({ [name]: newValue }, newValue, name, event)
-          }
+        // Set the selected option to `newId`, and update `value`
+        setSelectedId(newId)
+        updateScrollPosition(newId)
+        const newOptionValue = findOptionValueById(options, newId)
+        if (newOptionValue === null) {
+          throw new Error('Invariant violation') // `newId` is valid
         }
+        const newValue = newOptionValue.value
+        inputElement.value = newValue
+        onValueInput(newValue, name)
+        onInput(event)
+        inputElement.select()
         return
       }
-      if (
-        keyCode === ENTER_KEY_CODE ||
-        keyCode === ESCAPE_KEY_CODE ||
-        keyCode === TAB_KEY_CODE // Tabbing away from this component
-      ) {
-        if (keyCode === ENTER_KEY_CODE || keyCode === ESCAPE_KEY_CODE) {
-          event.preventDefault()
+      if (key === 'Enter' || key === 'Escape' || key === 'Tab') {
+        event.preventDefault()
+        if (propagateEscapeKeyDown === false) {
           event.stopPropagation()
         }
-        if (isMenuVisible === false && keyCode === ENTER_KEY_CODE) {
-          // Show the menu if it is currently hidden.
-          setIsMenuVisible(true)
-          return
+        if (key === 'Escape' && revertOnEscapeKeyDown === true) {
+          inputElement.value = originalValue
+          const inputEvent = document.createEvent('Event')
+          inputEvent.initEvent('input', true, true)
+          inputElement.dispatchEvent(inputEvent)
         }
-        if (isMenuVisible === false && keyCode === ESCAPE_KEY_CODE) {
-          // Blur the textbox if the menu is currently already hidden.
-          if (
-            inputElementRef.current === null ||
-            typeof inputElementRef.current === 'undefined'
-          ) {
-            return
-          }
-          inputElementRef.current.blur()
-          return
-        }
-        shouldSelectAllRef.current = false
-        if (
-          menuElementRef.current === null ||
-          typeof menuElementRef.current === 'undefined'
-        ) {
-          return
-        }
-        scrollTopRef.current = menuElementRef.current.scrollTop
-        setIsMenuVisible(false)
+        triggerBlur()
         return
       }
-      if (strict !== true) {
+      if (strict === false) {
         return
       }
       if (event.ctrlKey === true || event.metaKey === true) {
         return
       }
       if (isKeyCodeCharacterGenerating(event.keyCode) === true) {
-        if (
-          inputElementRef.current === null ||
-          typeof inputElementRef.current === 'undefined'
-        ) {
-          return
-        }
-        const nextValue = computeNextValue(inputElementRef.current, event.key)
-        if (isValidValue(nextValue) === false) {
+        // Piece together `newValue`, and stop the `keyDown` event if `newValue` is invalid
+        const newValue = computeNextValue(inputElement, event.key)
+        if (isValidValue(options, newValue) === false) {
           event.preventDefault()
         }
       }
     },
     [
-      computeNextId,
-      computePreviousId,
-      currentValue,
-      findMenuItemById,
-      isMenuVisible,
-      strict,
-      isValidValue,
-      menuItems.length,
+      editedValue,
       name,
-      onChange,
-      selectedId
+      onInput,
+      onValueInput,
+      options,
+      originalValue,
+      propagateEscapeKeyDown,
+      revertOnEscapeKeyDown,
+      selectedId,
+      strict,
+      triggerBlur,
+      updateScrollPosition
     ]
   )
 
-  const handleKeyUp = useCallback(
-    function (event: KeyboardEvent): void {
-      const keyCode = event.keyCode
-      if (
-        keyCode !== BACKSPACE_KEY_CODE &&
-        keyCode !== DELETE_KEY_CODE &&
-        isKeyCodeCharacterGenerating(keyCode) === false
-      ) {
-        return
+  const handlePaste = useCallback(
+    function (event: JSX.TargetedClipboardEvent<HTMLInputElement>): void {
+      if (event.clipboardData === null) {
+        throw new Error('`event.clipboardData` is `null`')
       }
-      if (
-        inputElementRef.current === null ||
-        typeof inputElementRef.current === 'undefined'
-      ) {
-        return
-      }
-      const value = inputElementRef.current.value
-      const index = getIdByValue(value)
-      setIsMenuVisible(true)
-      setSelectedId(index)
-      setCurrentValue(value)
-      onChange({ [name]: value }, value, name, event)
-    },
-    [getIdByValue, name, onChange]
-  )
-
-  const handleOptionClick = useCallback(
-    function (event: MouseEvent): void {
-      if (
-        menuElementRef.current === null ||
-        typeof menuElementRef.current === 'undefined'
-      ) {
-        return
-      }
-      scrollTopRef.current = menuElementRef.current.scrollTop
-      const id = (event.target as HTMLElement).getAttribute('data-id')
-      setSelectedId(id)
-      setIsMenuVisible(false)
-      const menuItem = findMenuItemById(id)
-      setCurrentValue(EMPTY_STRING)
-      if (menuItem !== null && 'value' in menuItem) {
-        const newValue = menuItem.value
-        onChange({ [name]: newValue }, newValue, name, event)
+      const newValue = computeNextValue(
+        event.currentTarget,
+        event.clipboardData.getData('Text')
+      )
+      if (isValidValue(options, newValue) === false) {
+        event.preventDefault()
       }
     },
-    [findMenuItemById, name, onChange]
+    [options]
   )
 
-  function handlePaste(event: ClipboardEvent): void {
-    if (
-      inputElementRef.current === null ||
-      typeof inputElementRef.current === 'undefined' ||
-      event.clipboardData === null
-    ) {
-      return
-    }
-    const nextValue = computeNextValue(
-      inputElementRef.current,
-      event.clipboardData.getData('Text')
-    )
-    if (isValidValue(nextValue) === false) {
-      event.preventDefault()
-    }
-  }
+  const handleOptionChange = useCallback(
+    function (event: JSX.TargetedEvent<HTMLInputElement>): void {
+      const newId = event.currentTarget.getAttribute(
+        ITEM_ID_DATA_ATTRIBUTE_NAME
+      ) as string
+      // Set the selected option to `newId`, and update `value`
+      setSelectedId(newId)
+      const newOptionValue = findOptionValueById(options, newId)
+      if (newOptionValue === null) {
+        throw new Error('Invariant violation') // `newId` is valid
+      }
+      const inputElement = getCurrentFromRef(inputElementRef)
+      inputElement.value = newOptionValue.value
+      const inputEvent = document.createEvent('Event')
+      inputEvent.initEvent('input', true, true)
+      inputElement.dispatchEvent(inputEvent)
+      triggerBlur()
+    },
+    [options, triggerBlur]
+  )
 
-  // Select the contents of the input whenever `value` changes and if
-  // `shouldSelectAllRef` is set to `true`
-  useLayoutEffect(
+  const handleOptionMouseMove = useCallback(
+    function (event: JSX.TargetedMouseEvent<HTMLInputElement>): void {
+      const newId = event.currentTarget.getAttribute(
+        ITEM_ID_DATA_ATTRIBUTE_NAME
+      ) as string
+      if (newId !== selectedId) {
+        setSelectedId(newId)
+      }
+    },
+    [selectedId]
+  )
+
+  const handleMouseDownOutside = useCallback(
     function (): void {
-      if (
-        inputElementRef.current === null ||
-        typeof inputElementRef.current === 'undefined'
-      ) {
-        return
-      }
-      if (shouldSelectAllRef.current === true) {
-        shouldSelectAllRef.current = false
-        inputElementRef.current.focus()
-        inputElementRef.current.select()
-      }
-    },
-    [committedValue]
-  )
-
-  // Restore the original menu scroll position and update focus
-  useLayoutEffect(
-    function (): void {
-      if (
-        inputElementRef.current === null ||
-        typeof inputElementRef.current === 'undefined' ||
-        menuElementRef.current === null ||
-        typeof menuElementRef.current === 'undefined'
-      ) {
-        return
-      }
       if (isMenuVisible === false) {
-        inputElementRef.current.blur()
-        setCurrentValue(EMPTY_STRING)
         return
       }
-      menuElementRef.current.scrollTop = scrollTopRef.current
-      inputElementRef.current.focus()
-      inputElementRef.current.select()
+      triggerBlur()
     },
-    [isMenuVisible]
+    [isMenuVisible, triggerBlur]
   )
+  useMouseDownOutside({
+    onMouseDownOutside: handleMouseDownOutside,
+    ref: rootElementRef
+  })
 
-  // Adjust the menu scroll position so that the selected menu item is always visible
-  useLayoutEffect(
-    function (): void {
-      if (
-        menuElementRef.current === null ||
-        typeof menuElementRef.current === 'undefined'
-      ) {
-        return
-      }
-      if (isMenuVisible === false || menuItems.length === 0) {
-        return
-      }
-      const menuElement = menuElementRef.current
-      if (selectedId === INVALID_MENU_ITEM_ID) {
-        menuElement.scrollTop = 0
-        return
-      }
-      const selectedElement = Array.prototype.slice
-        .call(menuElement.children)
-        .find(function (element: HTMLElement) {
-          return element.getAttribute('data-id') === `${selectedId}`
-        })
-      if (typeof selectedElement === 'undefined') {
-        return
-      }
-      if (selectedElement.offsetTop < menuElement.scrollTop) {
-        menuElement.scrollTop = selectedElement.offsetTop
-        return
-      }
-      const offsetBottom =
-        selectedElement.offsetTop + selectedElement.offsetHeight
-      if (offsetBottom > menuElement.scrollTop + menuElement.offsetHeight) {
-        menuElement.scrollTop = offsetBottom - menuElement.offsetHeight
-      }
-    },
-    [isMenuVisible, menuItems.length, selectedId]
-  )
-
-  // Blur the input and hide the menu if we clicked outside the component
-  useLayoutEffect(
-    function (): () => void {
-      function handleWindowMousedown(event: MouseEvent) {
-        if (
-          menuElementRef.current === null ||
-          typeof menuElementRef.current === 'undefined' ||
-          rootElementRef.current === null ||
-          typeof rootElementRef.current === 'undefined'
-        ) {
-          return
-        }
-        if (
-          isMenuVisible === false ||
-          rootElementRef.current === event.target ||
-          rootElementRef.current.contains(event.target as HTMLElement)
-        ) {
-          // Exit if we clicked on any DOM element that is part of the component
-          return
-        }
-        scrollTopRef.current = menuElementRef.current.scrollTop
-        setIsMenuVisible(false)
-      }
-      window.addEventListener('mousedown', handleWindowMousedown)
-      return function () {
-        window.removeEventListener('mousedown', handleWindowMousedown)
-      }
-    },
-    [isMenuVisible]
-  )
-
-  useLayoutEffect(
-    function (): void {
-      if (isValidValue(committedValue) === false) {
-        return
-      }
-      const id = getIdByValue(committedValue)
-      setSelectedId(id)
-    },
-    [committedValue, getIdByValue, isValidValue]
-  )
-
-  const hasIcon = typeof icon !== 'undefined'
   return (
     <div
       ref={rootElementRef}
-      class={classnames(
-        styles.textbox,
-        noBorder === true ? styles.noBorder : null,
-        hasIcon === true ? styles.hasIcon : null
-      )}
+      class={createClassName([
+        textboxStyles.textbox,
+        noBorder === true ? textboxStyles.noBorder : null,
+        typeof icon === 'undefined' ? null : textboxStyles.hasIcon,
+        disabled === true ? textboxStyles.disabled : null
+      ])}
     >
-      <input
-        {...rest}
-        ref={inputElementRef}
-        class={styles.input}
-        data-initial-focus={focused === true}
-        disabled={disabled === true}
-        name={name}
-        onFocus={disabled === true ? undefined : handleFocus}
-        onKeyDown={disabled === true ? undefined : handleKeyDown}
-        onKeyUp={disabled === true ? undefined : handleKeyUp}
-        onPaste={disabled === true ? undefined : handlePaste}
-        placeholder={placeholder}
-        tabIndex={disabled === true ? undefined : 0}
-        type="text"
-        value={committedValue === null ? '' : committedValue}
-      />
-      {hasIcon === true ? <div class={styles.icon}>{icon}</div> : null}
-      {disabled !== true && isMenuVisible === true && menuItems.length > 0 ? (
+      <div class={textboxStyles.inner}>
+        <input
+          {...rest}
+          ref={inputElementRef}
+          class={textboxStyles.input}
+          disabled={disabled === true}
+          name={name}
+          onFocus={handleFocus}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          placeholder={placeholder}
+          tabIndex={disabled === true ? -1 : 0}
+          type="text"
+          value={value}
+        />
+        {typeof icon === 'undefined' ? null : (
+          <div class={textboxStyles.icon}>{icon}</div>
+        )}
+        <div class={textboxStyles.border} />
         <div
           ref={menuElementRef}
-          class={classnames(
-            textboxAutocompleteStyles.menu,
-            top === true ? textboxAutocompleteStyles.top : null,
-            hasIcon === true ? textboxAutocompleteStyles.hasIcon : null
-          )}
+          class={createClassName([
+            menuStyles.menu,
+            disabled === true || isMenuVisible === false
+              ? menuStyles.hidden
+              : null,
+            top === true
+              ? textboxAutocompleteStyles.top
+              : textboxAutocompleteStyles.bottom
+          ])}
         >
-          {menuItems.map(function (menuItem) {
-            if ('separator' in menuItem) {
-              return (
-                <hr
-                  key={menuItem.id}
-                  class={textboxAutocompleteStyles.menuSeparator}
-                />
-              )
+          {options.map(function (option: Option, index: number): JSX.Element {
+            if ('separator' in option) {
+              return <hr key={index} class={menuStyles.optionSeparator} />
             }
-            if ('header' in menuItem) {
+            if ('header' in option) {
               return (
-                <h1
-                  key={menuItem.id}
-                  class={textboxAutocompleteStyles.menuHeader}
-                >
-                  {menuItem.header}
+                <h1 key={index} class={menuStyles.optionHeader}>
+                  {option.header}
                 </h1>
               )
             }
             return (
-              <div
-                key={menuItem.id}
-                class={classnames(
-                  textboxAutocompleteStyles.menuItem,
-                  menuItem.id === selectedId
-                    ? textboxAutocompleteStyles.menuItemSelected
+              <label
+                key={index}
+                class={createClassName([
+                  menuStyles.optionValue,
+                  option.disabled === true
+                    ? menuStyles.optionValueDisabled
+                    : null,
+                  option.disabled !== true && option.id === selectedId
+                    ? menuStyles.optionValueSelected
                     : null
-                )}
-                data-id={menuItem.id}
-                onClick={handleOptionClick}
+                ])}
               >
-                {menuItem.value}
-              </div>
+                <input
+                  {...rest}
+                  checked={value === option.value}
+                  class={menuStyles.input}
+                  disabled={option.disabled === true}
+                  name={name}
+                  onChange={handleOptionChange}
+                  onMouseMove={handleOptionMouseMove}
+                  spellcheck={spellCheck}
+                  tabIndex={-1}
+                  type="radio"
+                  value={`${option.value}`}
+                  {...{ [ITEM_ID_DATA_ATTRIBUTE_NAME]: option.id }}
+                />
+                {option.value === originalValue ? ( // Show check icon if option matches `originalValue`
+                  <div class={menuStyles.checkIcon}>
+                    <IconMenuCheckmarkChecked16 />
+                  </div>
+                ) : null}
+                {option.value}
+              </label>
             )
           })}
         </div>
-      ) : null}
+      </div>
     </div>
   )
+}
+
+// Add an `id` attribute to all the `TextboxAutocompleteOptionValue` items in `options`
+function createOptions(
+  options: Array<TextboxAutocompleteOption>
+): Array<Option> {
+  return options.map(function (
+    option: TextboxAutocompleteOption,
+    index: number
+  ): Option {
+    if ('value' in option) {
+      const optionValueWithId: OptionValueWithId = {
+        ...option,
+        id: `${index}`
+      }
+      return optionValueWithId
+    }
+    return option
+  })
+}
+
+function filterOptions(
+  options: Array<Option>,
+  value: string,
+  editedValue: string
+): Array<Option> {
+  if (value === EMPTY_STRING) {
+    return options
+  }
+  const id = getIdByValue(options, value)
+  if (id === INVALID_ID) {
+    // `value` does not match any option in `options`
+    return options.filter(function (option: Option): boolean {
+      if ('value' in option) {
+        return doesStringContainSubstring(option.value, value) === true
+      }
+      return false
+    })
+  }
+  // `value` matches one of the options in `options`
+  if (editedValue === EMPTY_STRING) {
+    return options
+  }
+  // Filter `options` by `editedValue`
+  return options.filter(function (option: Option): boolean {
+    if ('value' in option) {
+      return doesStringContainSubstring(option.value, editedValue) === true
+    }
+    return false
+  })
+}
+
+// Returns `true` if `string` contains `substring`, else `false`
+function doesStringContainSubstring(
+  string: string,
+  substring: string
+): boolean {
+  return string.toLowerCase().indexOf(substring.toLowerCase()) !== -1
+}
+
+// Returns the `id` of an `OptionValueWithId` in `options` with the given `value`
+function getIdByValue(options: Array<Option>, value: string): Id {
+  for (const option of options) {
+    if ('value' in option) {
+      if (option.value === value) {
+        return option.id
+      }
+    }
+  }
+  return INVALID_ID
+}
+
+// Returns `true` if `value` is a substring of `options[i].value` in `options`, else `false`
+function isValidValue(options: Array<Option>, value: string): boolean {
+  if (value === EMPTY_STRING) {
+    return true
+  }
+  for (const option of options) {
+    if ('value' in option) {
+      if (option.value.toLowerCase().indexOf(value.toLowerCase()) === 0) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+// Returns the `OptionValueWithId` in `options` with the given `id`, else `null`
+function findOptionValueById(
+  options: Array<Option>,
+  id: string
+): null | OptionValueWithId {
+  for (const option of options) {
+    if ('id' in option && option.id === id) {
+      return option
+    }
+  }
+  return null
+}
+
+// Returns the index of the `OptionValueWithId` in `options` with the given `id`, else `-1`
+function getIndexById(options: Array<Option>, id: string): number {
+  let index = 0
+  for (const option of options) {
+    if ('id' in option && option.id === id) {
+      return index
+    }
+    index += 1
+  }
+  return -1
+}
+
+// Returns the `Id` of the `OptionValueWithId` _before_ the `OptionValueWithId` in `options` with the given `id`
+function computePreviousId(options: Array<Option>, id: Id): Id {
+  if (id === INVALID_ID) {
+    const result = findOptionValueAtOrBeforeIndex(options, options.length - 1)
+    return result === null ? null : result.id
+  }
+  const index = getIndexById(options, id)
+  if (index === -1) {
+    throw new Error(`No option with \`id\` ${id}`)
+  }
+  if (index === 0) {
+    return null
+  }
+  const result = findOptionValueAtOrBeforeIndex(options, index - 1)
+  return result === null ? null : result.id
+}
+
+// Returns the `Id` of the `OptionValueWithId` _after_ the `OptionValueWithId` in `options` with the given `id`
+function computeNextId(options: Array<Option>, id: Id): Id {
+  if (id === INVALID_ID) {
+    const result = findOptionValueAtOrAfterIndex(options, 0)
+    return result === null ? null : result.id
+  }
+  const index = getIndexById(options, id)
+  if (index === -1) {
+    throw new Error(`No option with \`id\` ${id}`)
+  }
+  if (index === options.length - 1) {
+    return null
+  }
+  const result = findOptionValueAtOrAfterIndex(options, index + 1)
+  return result === null ? null : result.id
+}
+
+// Returns the `OptionValueWithId` in `options` at or _before_ the `index`, else `null`
+function findOptionValueAtOrBeforeIndex(
+  options: Array<Option>,
+  index: number
+): null | OptionValueWithId {
+  if (index < 0) {
+    throw new Error('`index` < 0')
+  }
+  if (index > options.length - 1) {
+    throw new Error('`index` > `options.length` - 1')
+  }
+  return findLastOptionValue(options.slice(0, index + 1))
+}
+
+// Returns the `OptionValueWithId` in `options` at or _after_ the `index`, else `null`
+function findOptionValueAtOrAfterIndex(
+  options: Array<Option>,
+  index: number
+): null | OptionValueWithId {
+  if (index < 0) {
+    throw new Error('`index` < 0')
+  }
+  if (index > options.length - 1) {
+    throw new Error('`index` > `options.length` - 1')
+  }
+  return findFirstOptionValue(options.slice(index))
+}
+
+// Returns the first `OptionValueWithId` encountered in `options`, else `null`
+function findFirstOptionValue(
+  options: Array<Option>
+): null | OptionValueWithId {
+  for (const option of options) {
+    if ('id' in option && option.disabled !== true) {
+      return option
+    }
+  }
+  return null
+}
+
+// Returns the last `OptionValueWithId` encountered in `options`, else `null`
+function findLastOptionValue(options: Array<Option>): null | OptionValueWithId {
+  return findFirstOptionValue(options.slice().reverse())
+}
+
+function updateMenuElementMaxHeight(
+  rootElement: HTMLDivElement,
+  menuElement: HTMLDivElement,
+  top: boolean
+) {
+  const rootElementTop = rootElement.getBoundingClientRect().top
+  const maxHeight =
+    top === true
+      ? rootElementTop - MENU_VERTICAL_MARGIN
+      : window.innerHeight -
+        rootElementTop -
+        rootElement.offsetHeight -
+        MENU_VERTICAL_MARGIN
+  menuElement.style.maxHeight = `${maxHeight}px`
 }

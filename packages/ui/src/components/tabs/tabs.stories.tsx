@@ -1,40 +1,48 @@
 /** @jsx h */
-import { h } from 'preact'
+/* eslint-disable no-console */
+import { h, JSX } from 'preact'
 import { useState } from 'preact/hooks'
 
-import { Text } from '../text/text'
-import { Tabs } from './tabs'
+import { Tabs, TabsOption } from './tabs'
 
-export default { title: 'Tabs' }
+export default { title: 'Components/Tabs' }
 
-export const Default = function () {
-  const [state, setState] = useState({ foo: null })
-  return (
-    <Tabs
-      name="foo"
-      onChange={setState}
-      options={[
-        { value: 'foo', view: <Text>Foo</Text> },
-        { value: 'bar', view: <Text>Bar</Text> },
-        { value: 'baz', view: <Text>Baz</Text> }
-      ]}
-      value={state.foo}
-    />
-  )
+export const Unselected = function () {
+  const [value, setValue] = useState<null | string>(null)
+  const options: Array<TabsOption> = [
+    { children: <div>Foo</div>, value: 'foo' },
+    { children: <div>Bar</div>, value: 'bar' },
+    { children: <div>Baz</div>, value: 'baz' }
+  ]
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <Tabs onChange={handleChange} options={options} value={value} />
 }
 
-export const WithSelectedOption = function () {
-  const [state, setState] = useState({ foo: 'bar' })
-  return (
-    <Tabs
-      name="foo"
-      onChange={setState}
-      options={[
-        { value: 'foo', view: <Text>Foo</Text> },
-        { value: 'bar', view: <Text>Bar</Text> },
-        { value: 'baz', view: <Text>Baz</Text> }
-      ]}
-      value={state.foo}
-    />
-  )
+export const Selected = function () {
+  const [value, setValue] = useState('bar')
+  const options: Array<TabsOption> = [
+    { children: <div>Foo</div>, value: 'foo' },
+    { children: <div>Bar</div>, value: 'bar' },
+    { children: <div>Baz</div>, value: 'baz' }
+  ]
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value
+    console.log(newValue)
+    setValue(newValue)
+  }
+  return <Tabs onChange={handleChange} options={options} value={value} />
+}
+
+export const OnValueChange = function () {
+  const [value, setValue] = useState('bar')
+  const options: Array<TabsOption> = [
+    { children: <div>Foo</div>, value: 'foo' },
+    { children: <div>Bar</div>, value: 'bar' },
+    { children: <div>Baz</div>, value: 'baz' }
+  ]
+  return <Tabs onValueChange={setValue} options={options} value={value} />
 }

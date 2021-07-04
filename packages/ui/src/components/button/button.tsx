@@ -1,62 +1,60 @@
 /** @jsx h */
-import classnames from '@sindresorhus/class-names'
-import { h } from 'preact'
+import { ComponentChildren, h, JSX } from 'preact'
 import { useCallback } from 'preact/hooks'
 
-import { HTMLProps } from '../../types'
-import { ENTER_KEY_CODE, ESCAPE_KEY_CODE } from '../../utilities/key-codes'
+import { Props } from '../../types/types'
+import { createClassName } from '../../utilities/create-class-name'
 import { LoadingIndicator } from '../loading-indicator/loading-indicator'
-import styles from './button.scss'
+import styles from './button.css'
 
-export interface ButtonProps {
-  children: preact.ComponentChildren
+export type ButtonProps = {
+  children: ComponentChildren
   destructive?: boolean
   disabled?: boolean
-  focused?: boolean
   fullWidth?: boolean
   loading?: boolean
-  onClick: EventListener
+  onClick?: JSX.MouseEventHandler<HTMLButtonElement>
   propagateEscapeKeyDown?: boolean
   secondary?: boolean
 }
 
 export function Button({
   children,
-  destructive,
-  disabled,
-  focused,
-  fullWidth,
-  loading,
+  destructive = false,
+  disabled = false,
+  fullWidth = false,
+  loading = false,
   onClick,
   propagateEscapeKeyDown = true,
-  secondary,
+  secondary = false,
   ...rest
-}: HTMLProps<ButtonProps, HTMLButtonElement>): h.JSX.Element {
+}: Props<HTMLButtonElement, ButtonProps>): JSX.Element {
   const handleKeyDown = useCallback(
-    function (event: KeyboardEvent) {
-      const keyCode = event.keyCode
-      if (keyCode === ESCAPE_KEY_CODE) {
+    function (event: JSX.TargetedKeyboardEvent<HTMLButtonElement>): void {
+      if (event.key === 'Escape') {
         if (propagateEscapeKeyDown === false) {
           event.stopPropagation()
         }
-        ;(event.target as HTMLElement).blur()
+        event.currentTarget.blur()
+        return
       }
-      if (keyCode === ENTER_KEY_CODE) {
+      if (event.key === 'Enter') {
         event.stopPropagation()
       }
     },
     [propagateEscapeKeyDown]
   )
+
   return (
     <div
-      class={classnames(
+      class={createClassName([
         styles.button,
         secondary === true ? styles.secondary : styles.primary,
         destructive === true ? styles.destructive : null,
         fullWidth === true ? styles.fullWidth : null,
         disabled === true ? styles.disabled : null,
         loading === true ? styles.loading : null
-      )}
+      ])}
     >
       {loading === true ? (
         <div class={styles.loadingIndicator}>
@@ -65,11 +63,12 @@ export function Button({
       ) : null}
       <button
         {...rest}
-        data-initial-focus={focused === true}
         disabled={disabled === true}
-        onClick={onClick}
-        onKeyDown={handleKeyDown}
-        tabIndex={disabled === true ? undefined : 0}
+        onClick={disabled === true || loading === true ? undefined : onClick}
+        onKeyDown={
+          disabled === true || loading === true ? undefined : handleKeyDown
+        }
+        tabIndex={disabled === true ? -1 : 0}
       >
         {children}
       </button>
